@@ -178,14 +178,29 @@ async function main() {
     if (res.status !== 401) throw new Error(`Expected 401, got ${res.status}`);
   });
 
-  await test('Staff scan CU2024001', async () => {
+  await test('Staff scan CU2024001 (student ID)', async () => {
     const { data } = await api('/api/scan/CU2024001', {}, staffToken);
-    if (!memberName(data)) throw new Error('Member not found');
+    if (!data.name) throw new Error('Member not found');
+  });
+
+  await test('Staff scan CU-M-2024001 (member code)', async () => {
+    const { data } = await api('/api/scan/CU-M-2024001', {}, staffToken);
+    if (!data.name) throw new Error('Member not found');
+  });
+
+  await test('Staff scan GC001 (barcode)', async () => {
+    const { data } = await api('/api/scan/GC001', {}, staffToken);
+    if (!data.name) throw new Error('Member not found');
+  });
+
+  await test('Staff scan 60123456789 (phone)', async () => {
+    const { data } = await api('/api/scan/60123456789', {}, staffToken);
+    if (!data.name) throw new Error('Member not found');
   });
 
   await test('Staff scan GC-M-001 (general customer)', async () => {
     const { data } = await api('/api/scan/GC-M-001', {}, staffToken);
-    if (!memberName(data)) throw new Error('General member not found');
+    if (!data.name) throw new Error('General member not found');
   });
 
   await test('GET /api/menu (authenticated)', async () => {

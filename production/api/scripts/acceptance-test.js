@@ -72,16 +72,31 @@ async function main() {
     if (res.status !== 401) throw new Error('Expected 401 for bad password');
   });
 
-  await test('Flow 4: Scan CU2024001 (staff token)', async () => {
+  await test('Flow 4: Scan by student ID CU2024001', async () => {
     const { data } = await api('/api/scan/CU2024001', {}, staffToken);
-    const name = data?.name || data?.fullName;
-    if (!name) throw new Error('Member not found');
+    if (!data.name) throw new Error('Member not found by student ID');
+    if (data.customerType !== 'city_student') throw new Error('Expected city_student');
   });
 
-  await test('Flow 4: Scan GC-M-001 (general)', async () => {
+  await test('Flow 4: Scan by member code CU-M-2024001', async () => {
+    const { data } = await api('/api/scan/CU-M-2024001', {}, staffToken);
+    if (!data.name) throw new Error('Member not found by member code');
+  });
+
+  await test('Flow 4: Scan by barcode GC001 (general)', async () => {
+    const { data } = await api('/api/scan/GC001', {}, staffToken);
+    if (!data.name) throw new Error('Member not found by barcode');
+    if (data.customerType !== 'general_customer') throw new Error('Expected general_customer');
+  });
+
+  await test('Flow 4: Scan by phone 60123456789', async () => {
+    const { data } = await api('/api/scan/60123456789', {}, staffToken);
+    if (data.name !== 'Ali Rahman') throw new Error(`Expected Ali Rahman, got ${data.name}`);
+  });
+
+  await test('Flow 4: Scan GC-M-001 (member code general)', async () => {
     const { data } = await api('/api/scan/GC-M-001', {}, staffToken);
-    const name = data?.name || data?.fullName;
-    if (!name) throw new Error('General member not found');
+    if (!data.name) throw new Error('General member not found');
   });
 
   await test('Flow 1: Student sale with offer (staff token)', async () => {

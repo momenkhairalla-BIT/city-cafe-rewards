@@ -1,5 +1,6 @@
 import { Router } from 'express';
-import { query } from '../db/pool.js';
+import { query, pool } from '../db/pool.js';
+import { findMemberByScan, mapMemberRow, memberSelectFields } from '../services/members.js';
 import { requireRole } from '../middleware/auth.js';
 
 const router = Router();
@@ -8,18 +9,19 @@ function customerCanAccess(req, code) {
   if (req.user.role !== 'customer') return true;
   const own = (req.user.memberCode || req.user.username || '').toUpperCase();
   const q = (code || '').trim().toUpperCase();
-  return own === q;
+  return own === q || own === q.replace(/-/g, '');
+}
+
+function mapStudentRow(row) {
+  return mapMemberRow(row);
 }
 
 router.get('/', requireRole('staff', 'admin'), async (_req, res, next) => {
   try {
     const { rows } = await query(
-      `SELECT id, student_id, name, member_code, customer_type, programme, email, phone,
-              barcode_value, qr_value, points, total_purchases,
-              current_stamp_progress, free_drinks_available, membership_status, is_active
-       FROM students ORDER BY customer_type, student_id, member_code`
+      `SELECT ${memberSelectFields()} FROM students ORDER BY customer_type, student_id, member_code`
     );
-    res.json({ data: rows });
+    res.json({ data: rows.map(mapStudentRow) });
   } catch (err) {
     next(err);
   }
@@ -31,11 +33,8 @@ router.get('/:studentCode/history', async (req, res, next) => {
     if (!customerCanAccess(req, code)) {
       return res.status(403).json({ error: 'You can only view your own history' });
     }
-    const student = await query(
-      `SELECT id FROM students WHERE student_id = $1 OR member_code = $1 OR barcode_value = $1 OR phone = $2`,
-      [code.toUpperCase(), code]
-    );
-    if (!student.rows[0]) return res.status(404).json({ error: 'Student not found' });
+    const member = await findMemberByScan(pool, code);
+    if (!member) return res.status(404).json({ error: 'Member not found' });
 
     const { rows } = await query(
       `SELECT o.order_number, o.transaction_type, o.total, o.points_earned, o.points_used,
@@ -50,7 +49,7 @@ router.get('/:studentCode/history', async (req, res, next) => {
        WHERE o.student_id = $1
        ORDER BY o.created_at DESC
        LIMIT 50`,
-      [student.rows[0].id]
+      [member.id]
     );
     res.json({ data: rows });
   } catch (err) {
@@ -63,16 +62,9 @@ router.get('/:studentCode', async (req, res, next) => {
     if (!customerCanAccess(req, req.params.studentCode)) {
       return res.status(403).json({ error: 'You can only view your own profile' });
     }
-    const { rows } = await query(
-      `SELECT id, student_id, name, member_code, customer_type, programme, email, phone,
-              barcode_value, qr_value, points, total_purchases,
-              current_stamp_progress, free_drinks_available, membership_status, is_active
-       FROM students WHERE student_id = $1 OR member_code = $1 OR barcode_value = $1 OR qr_value = $1 OR phone = $2
-       LIMIT 1`,
-      [req.params.studentCode.toUpperCase(), req.params.studentCode]
-    );
-    if (!rows[0]) return res.status(404).json({ error: 'Student not found' });
-    res.json({ data: rows[0] });
+    const member = await findMemberByScan(pool, req.params.studentCode);
+    if (!member) return res.status(404).json({ error: 'Member not found' });
+    res.json({ data: mapStudentRow(member) });
   } catch (err) {
     next(err);
   }

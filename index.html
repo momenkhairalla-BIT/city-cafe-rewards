@@ -1180,9 +1180,10 @@ function saveData(data) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
 }
 
-function getStudent(id) {
+function findMemberByQuery(code) {
   const data = loadData();
-  const q = (id || '').trim();
+  const q = (code || '').trim();
+  if (!q) return null;
   const up = q.toUpperCase();
   return data.students.find(s =>
     s.studentId === q || s.studentId?.toUpperCase() === up ||
@@ -1192,12 +1193,31 @@ function getStudent(id) {
   );
 }
 
+function findMemberIndex(code) {
+  const data = loadData();
+  const q = (code || '').trim();
+  if (!q) return -1;
+  const up = q.toUpperCase();
+  return data.students.findIndex(s =>
+    s.studentId === q || s.studentId?.toUpperCase() === up ||
+    s.memberCode === q || s.memberCode?.toUpperCase() === up ||
+    s.barcodeValue?.toUpperCase() === up || s.qrValue?.toUpperCase() === up ||
+    s.phone === q
+  );
+}
+
+function memberScanKey(member) {
+  if (!member) return '';
+  return member.studentId || member.memberCode || member.phone || '';
+}
+
+function getStudent(id) {
+  return findMemberByQuery(id);
+}
+
 function updateStudent(studentIdOrCode, updater) {
   const data = loadData();
-  const idx = data.students.findIndex(s =>
-    s.studentId === studentIdOrCode || s.memberCode === studentIdOrCode ||
-    s.studentId?.toUpperCase() === (studentIdOrCode || '').toUpperCase()
-  );
+  const idx = findMemberIndex(studentIdOrCode);
   if (idx === -1) return null;
   updater(data.students[idx]);
   saveData(data);
@@ -1900,26 +1920,28 @@ window.quickScan = function(id) {
 
 window.staffScanStudent = async function() {
   const input = document.getElementById('staff-id-input');
-  const id = (input ? input.value : '').trim().toUpperCase();
+  const code = (input ? input.value : '').trim();
+  if (!code) { toast('Enter or scan a member code', 'error'); return; }
   if (apiEnabled) {
     try {
-      await apiFetch(`/api/students/${id}`);
-      saveUiState({ ...loadUiState(), staffScannedId: id });
-      toast('Student loaded from database', 'success');
+      const res = await apiFetch('/api/scan/' + encodeURIComponent(code));
+      const m = res.data;
+      const scanKey = memberScanKey(mapStudentFromApi(m));
+      saveUiState({ ...loadUiState(), staffScannedId: scanKey });
+      toast('Member loaded: ' + (m.name || m.fullName), 'success');
       await syncFromApi();
       renderStaff();
       return;
-    } catch {
-      toast('Student not found. Check the ID.', 'error');
+    } catch (e) {
+      toast(e.message || 'Member not found', 'error');
       return;
     }
   }
-  const student = getStudent(id);
-  if (!student) { toast('Student not found. Check the ID.', 'error'); return; }
-  const data = loadData();
-  data.staffScannedId = id;
-  saveData(data);
-  toast('Student loaded: ' + student.name, 'success');
+  const member = findMemberByQuery(code);
+  if (!member) { toast('Member not found', 'error'); return; }
+  const scanKey = memberScanKey(member);
+  saveUiState({ ...loadUiState(), staffScannedId: scanKey });
+  toast('Member loaded: ' + member.name, 'success');
   renderStaff();
 };
 
@@ -2602,6 +2624,8 @@ function renderAdminStudents() {
     const matchSearch = !q || s.name.toLowerCase().includes(q) ||
       (s.studentId || '').toLowerCase().includes(q) ||
       (s.memberCode || '').toLowerCase().includes(q) ||
+      (s.barcodeValue || '').toLowerCase().includes(q) ||
+      (s.qrValue || '').toLowerCase().includes(q) ||
       (s.phone || '').includes(studentSearch);
     const ct = s.customerType || 'city_student';
     const matchFilter = memberFilter === 'all' ||

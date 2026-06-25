@@ -276,36 +276,6 @@
     origShowView(role);
   };
 
-  const origStaffScan = window.staffScanStudent;
-  window.staffScanStudent = async function () {
-    const input = document.getElementById('staff-id-input');
-    const code = (input ? input.value : '').trim();
-    if (!code) { toast('Enter or scan a member code', 'error'); return; }
-    if (apiEnabled) {
-      try {
-        const res = await apiFetch('/api/scan/' + encodeURIComponent(code));
-        const m = res.data;
-        const id = m.studentId || m.student_id || m.memberCode || m.member_code;
-        saveUiState({ ...loadUiState(), staffScannedId: id });
-        toast('Member loaded: ' + (m.name || m.fullName), 'success');
-        await syncFromApi();
-        renderStaff();
-        return;
-      } catch (e) {
-        toast(e.message || 'Member not found', 'error');
-        return;
-      }
-    }
-    const member = findMemberLocal(code);
-    if (!member) { toast('Member not found', 'error'); return; }
-    const data = loadData();
-    data.staffScannedId = member.studentId || member.memberCode;
-    saveUiState({ ...loadUiState(), staffScannedId: data.staffScannedId });
-    saveData(data);
-    toast('Member loaded: ' + member.name, 'success');
-    renderStaff();
-  };
-
   window.posSelectedOfferId = null;
 
   const origPosCheckout = window.posCheckout;
