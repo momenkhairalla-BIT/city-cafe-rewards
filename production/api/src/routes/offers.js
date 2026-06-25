@@ -7,6 +7,7 @@ const router = Router();
 function mapOffer(row) {
   return {
     offerId: row.id,
+    id: row.id,
     slug: row.slug,
     offerName: row.offer_name,
     customerTypeEligibility: row.customer_type_eligibility,

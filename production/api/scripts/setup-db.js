@@ -43,6 +43,10 @@ async function main() {
     if (fs.existsSync(migrationPath)) {
       await runSqlFile('002_members_upgrade', migrationPath);
     }
+    const migration3 = path.join(dbDir, '003_phase3_offers.sql');
+    if (fs.existsSync(migration3)) {
+      await runSqlFile('003_phase3_offers', migration3);
+    }
 
     const counts = await pool.query(`
       SELECT

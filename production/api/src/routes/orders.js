@@ -7,6 +7,12 @@ import {
   applyRewardRedemption,
   applyFreeDrinkRedemption,
 } from '../services/loyalty.js';
+import {
+  getOfferBySlugOrId,
+  validateOfferEligibility,
+  calculateOfferDiscount,
+  mapOfferRow,
+} from '../services/offers.js';
 import { requireRole } from '../middleware/auth.js';
 
 const router = Router();
@@ -38,12 +44,6 @@ router.post('/sales', requireRole('staff', 'admin'), async (req, res, next) => {
     }
 
     const subtotal = items.reduce((sum, i) => sum + Number(i.unitPrice) * Number(i.quantity), 0);
-    const discountAmount = Math.min(Number(discount) || 0, subtotal);
-    const total = Math.max(0, subtotal - discountAmount);
-    if (total <= 0) return res.status(400).json({ error: 'Total must be greater than 0' });
-    if (paymentMethod === 'Cash' && Number(cashReceived) < total) {
-      return res.status(400).json({ error: 'Insufficient cash received' });
-    }
 
     await client.query('BEGIN');
 
@@ -57,11 +57,59 @@ router.post('/sales', requireRole('staff', 'admin'), async (req, res, next) => {
       return res.status(403).json({ error: 'Member account is inactive' });
     }
 
-    const loyalty = await applyPurchaseLoyalty(client, student, total, pointsMultiplier);
+    const resolvedCustomerType = customerType || student.customer_type || 'city_student';
+    let discountAmount = Math.min(Number(discount) || 0, subtotal);
+    let resolvedOfferUsed = offerUsed;
+    let resolvedOfferId = offerId;
+    let resolvedPointsMultiplier = Number(pointsMultiplier) || 1;
+    let discountType = null;
+
+    if (offerId) {
+      const offerRow = await getOfferBySlugOrId(client, offerId);
+      const offer = mapOfferRow(offerRow);
+      const check = validateOfferEligibility(offer, resolvedCustomerType);
+      if (!check.ok) {
+        await client.query('ROLLBACK');
+        return res.status(403).json({ error: check.error });
+      }
+      const calc = calculateOfferDiscount(offer, items, subtotal);
+      discountAmount = Math.min(calc.discount, subtotal);
+      resolvedOfferUsed = calc.label || offer.offerName;
+      resolvedOfferId = offer.offerId;
+      resolvedPointsMultiplier = calc.pointsMultiplier;
+      discountType = calc.discountType;
+    } else if (offerUsed) {
+      const offerRow = await getOfferBySlugOrId(client, offerUsed);
+      if (offerRow) {
+        const offer = mapOfferRow(offerRow);
+        const check = validateOfferEligibility(offer, resolvedCustomerType);
+        if (!check.ok) {
+          await client.query('ROLLBACK');
+          return res.status(403).json({ error: check.error });
+        }
+        const calc = calculateOfferDiscount(offer, items, subtotal);
+        discountAmount = Math.min(Math.max(discountAmount, calc.discount), subtotal);
+        resolvedOfferUsed = calc.label || offer.offerName;
+        resolvedOfferId = offer.offerId;
+        resolvedPointsMultiplier = calc.pointsMultiplier;
+        discountType = calc.discountType;
+      }
+    }
+
+    const total = Math.max(0, subtotal - discountAmount);
+    if (total <= 0) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({ error: 'Total must be greater than 0' });
+    }
+    if (paymentMethod === 'Cash' && Number(cashReceived) < total) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({ error: 'Insufficient cash received' });
+    }
+
+    const loyalty = await applyPurchaseLoyalty(client, student, total, resolvedPointsMultiplier);
     const orderNumber = generateOrderNumber();
     const changeAmount = paymentMethod === 'Cash' ? Number(cashReceived) - total : 0;
     const memberName = student.name || student.email;
-    const resolvedCustomerType = customerType || student.customer_type || 'city_student';
     const resolvedMemberCode = student.member_code || student.student_id;
 
     const orderResult = await client.query(
@@ -69,15 +117,16 @@ router.post('/sales', requireRole('staff', 'admin'), async (req, res, next) => {
         order_number, student_id, transaction_type, subtotal, discount, total,
         payment_method, cash_received, change_amount, points_earned,
         stamp_before, stamp_after, free_drink_unlocked, cashier_name, note,
-        member_code, customer_type, member_name, offer_used, offer_id, points_multiplier
-      ) VALUES ($1,$2,'Purchase',$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20)
+        member_code, customer_type, member_name, offer_used, offer_id, points_multiplier, discount_type
+      ) VALUES ($1,$2,'Purchase',$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21)
       RETURNING *`,
       [
         orderNumber, student.id, subtotal, discountAmount, total,
         paymentMethod, cashReceived || null, changeAmount || null,
         loyalty.pointsEarned, loyalty.stampBefore, loyalty.stampAfter,
         loyalty.freeDrinkUnlocked, cashierName, note,
-        resolvedMemberCode, resolvedCustomerType, memberName, offerUsed, offerId, pointsMultiplier,
+        resolvedMemberCode, resolvedCustomerType, memberName,
+        resolvedOfferUsed, resolvedOfferId, resolvedPointsMultiplier, discountType,
       ]
     );
     const order = orderResult.rows[0];
@@ -109,11 +158,19 @@ router.post('/sales', requireRole('staff', 'admin'), async (req, res, next) => {
         student: loyalty.updatedStudent,
         receipt: {
           orderNumber,
+          subtotal,
+          discount: discountAmount,
           total,
+          offerUsed: resolvedOfferUsed,
+          offerId: resolvedOfferId,
+          discountType,
+          pointsMultiplier: resolvedPointsMultiplier,
           pointsEarned: loyalty.pointsEarned,
           stampAfter: loyalty.stampAfter,
           freeDrinkUnlocked: loyalty.freeDrinkUnlocked,
           changeAmount,
+          customerType: resolvedCustomerType,
+          memberCode: resolvedMemberCode,
         },
       },
     });

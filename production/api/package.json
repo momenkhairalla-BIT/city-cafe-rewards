@@ -9,12 +9,14 @@
     "dev": "node --watch src/index.js",
     "setup-db": "node scripts/setup-db.js",
     "migrate-v2": "node scripts/migrate-v2.js",
+    "migrate-v3": "node scripts/migrate-v3.js",
     "hash-passwords": "node scripts/hash-demo-passwords.js",
     "verify-deploy": "node scripts/verify-deploy.js",
     "test:acceptance": "node scripts/acceptance-test.js",
     "test:production": "node scripts/test-production.js",
     "test:production:live": "node scripts/run-production-live.js",
-    "test:phase2": "node scripts/test-phase2.js"
+    "test:phase2": "node scripts/test-phase2.js",
+    "test:phase3": "node scripts/test-phase3.js"
   },
   "engines": {
     "node": ">=20"

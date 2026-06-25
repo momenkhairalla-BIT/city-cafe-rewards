@@ -39,7 +39,8 @@ Summary:
 | `npm run migrate-v2` | Members, offers, auth upgrade |
 | `npm run hash-passwords` | bcrypt demo accounts |
 | `npm run verify-deploy` | Check env vars before deploy |
-| `npm run test:phase2` | Phase 2 registration + login tests (set `ALLOW_WRITE_TESTS=1` for full suite) |
+| `npm run migrate-v3` | Phase 3 offers metadata on orders |
+| `npm run test:phase3` | Phase 3 offers + POS discount tests (`ALLOW_WRITE_TESTS=1` for full suite) |
 
 ## Demo logins
 

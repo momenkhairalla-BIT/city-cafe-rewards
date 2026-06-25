@@ -860,7 +860,8 @@
     .pos-offers-panel { background: var(--soft-pink); border-radius: 8px; padding: 12px; margin-bottom: 12px; }
     .pos-offer-btn { display: block; width: 100%; text-align: left; padding: 8px; margin: 4px 0; border: 1px solid #ddd; border-radius: 6px; background: white; cursor: pointer; font-size: 0.85rem; }
     .pos-offer-btn.active { border-color: var(--pink); background: var(--soft-pink); }
-    .pos-offer-btn.disabled { opacity: 0.5; cursor: not-allowed; }
+    .pos-cart-offer-line { font-size: 0.85rem; color: var(--pink); margin: 4px 0; }
+    .pos-general-notice { background: #f5f5f5; border-radius: 8px; padding: 12px; margin-bottom: 12px; font-size: 0.85rem; color: #666; }
     .scan-hint { font-size: 0.8rem; color: #888; margin-bottom: 12px; }
     .menu-thumb { width: 48px; height: 48px; border-radius: 6px; object-fit: cover; background: #eee; }
   </style>
@@ -1433,6 +1434,7 @@ function mapOfferFromApi(o) {
   return {
     offerId: o.offerId || o.id || o.slug,
     id: o.offerId || o.id || o.slug,
+    slug: o.slug,
     offerName: o.offerName || o.offer_name,
     customerTypeEligibility: o.customerTypeEligibility || o.customer_type_eligibility,
     discountType: o.discountType || o.discount_type,
@@ -2056,23 +2058,36 @@ function renderPosStudentStrip(s) {
 
 function renderPosOffers(s) {
   if (!s) return '';
+  const ct = s.customerType || (s.studentId ? 'city_student' : 'general_customer');
+  if (ct === 'general_customer') {
+    return `<div class="pos-general-notice">
+      ${typeof memberTypeBadge === 'function' ? memberTypeBadge(s) : '<span>General Customer</span>'}
+      <p style="margin:8px 0 0">Student-only offers are not available for general customers.</p>
+    </div>`;
+  }
   const offers = typeof getEligibleOffers === 'function' ? getEligibleOffers(s) : (loadData().offers || []).filter(o => o.isActive);
-  if (!offers.length) return '';
-  return `<div class="pos-offers-panel"><strong>Applicable Offers</strong>
+  if (!offers.length) return `<div class="pos-offers-panel"><strong>City University Student · Special Offers Active</strong><p style="margin:8px 0 0;font-size:0.85rem">No active offers at this time.</p></div>`;
+  return `<div class="pos-offers-panel"><strong>City University Student · Special Offers Active</strong>
+    <p style="margin:6px 0 10px;font-size:0.8rem">Select one offer before checkout</p>
     ${offers.map(o => {
-      const disabled = o.customerTypeEligibility === 'city_student' && s.customerType === 'general_customer';
-      const sel = (window.posSelectedOfferId === o.offerId || window.posSelectedOfferId === o.id) ? 'active' : '';
-      return `<button class="pos-offer-btn ${sel} ${disabled ? 'disabled' : ''}"
-        onclick="${disabled ? '' : `selectPosOffer('${o.offerId || o.id}')`}"
-        ${disabled ? 'disabled title="This offer is only for City University students."' : ''}>
-        ${o.offerName}${disabled ? ' (City University students only)' : ''}
-      </button>`;
+      const oid = o.offerId || o.id;
+      const sel = window.posSelectedOfferId === oid ? 'active' : '';
+      return `<button type="button" class="pos-offer-btn ${sel}" onclick="selectPosOffer('${oid}')">${o.offerName}</button>`;
     }).join('')}
+    ${window.posSelectedOfferId ? `<button type="button" class="btn btn-outline btn-sm" style="margin-top:8px" onclick="clearPosOffer()">Remove Offer</button>` : ''}
   </div>`;
 }
 
+window.clearPosOffer = function() {
+  window.posSelectedOfferId = null;
+  if (typeof applySelectedPosOffer === 'function') applySelectedPosOffer();
+  else { posDiscount = 0; window._posOfferUsed = null; window._posPointsMultiplier = 1; window._posOfferId = null; }
+  renderStaff();
+};
+
 window.selectPosOffer = function(id) {
   window.posSelectedOfferId = window.posSelectedOfferId === id ? null : id;
+  if (typeof applySelectedPosOffer === 'function') applySelectedPosOffer();
   renderStaff();
 };
 
@@ -2091,6 +2106,9 @@ function renderStaffPOS() {
   const pm = window._posPointsMultiplier || 1;
   const pointsEarned = Math.floor(finalTotal * pm);
   const change = posPaymentMethod === 'Cash' ? Math.max(0, (posCashReceived || 0) - finalTotal) : 0;
+  const ct = s ? (s.customerType || (s.studentId ? 'city_student' : 'general_customer')) : '';
+  const ctLabel = ct === 'general_customer' ? 'General Customer' : ct === 'city_student' ? 'City University Student' : '—';
+  const appliedOffer = window._posOfferUsed || null;
 
   return `
     <div class="pos-header-bar">
@@ -2139,14 +2157,12 @@ function renderStaffPOS() {
             </div>`).join('') : '<div class="empty-state" style="padding:24px"><p>Cart is empty</p></div>'}
         </div>
         <div class="pos-cart-footer">
+          ${s ? `<div class="pos-summary-line"><span>Customer Type</span><span>${ctLabel}</span></div>` : ''}
           <div class="pos-summary-line"><span>Subtotal</span><span>${formatRM(subtotal)}</span></div>
-          <div class="input-group" style="margin:8px 0">
-            <label>Discount (RM)</label>
-            <input type="number" min="0" step="0.5" value="${posDiscount || ''}" placeholder="0"
-              onchange="posDiscount=parseFloat(this.value)||0;renderStaff()">
-          </div>
-          <div class="pos-summary-line total"><span>Total</span><span>${formatRM(finalTotal)}</span></div>
-          <div class="pos-summary-line earn"><span>Points to earn</span><span>+${pointsEarned}</span></div>
+          ${appliedOffer ? `<div class="pos-cart-offer-line"><span>Applied Offer</span><span>${appliedOffer}</span></div>` : ''}
+          ${discount > 0 ? `<div class="pos-summary-line"><span>Discount</span><span style="color:var(--pink)">−${formatRM(discount)}</span></div>` : ''}
+          <div class="pos-summary-line total"><span>Final Total</span><span>${formatRM(finalTotal)}</span></div>
+          <div class="pos-summary-line earn"><span>Points to earn</span><span>+${pointsEarned}${pm > 1 ? ' (×' + pm + ')' : ''}</span></div>
           <div class="pos-summary-line"><span>Stamp</span><span>+1 per sale</span></div>
           <div style="margin-top:12px;font-size:0.85rem;font-weight:600">Payment Method</div>
           <div class="pos-payment-grid">
@@ -2182,11 +2198,13 @@ window.addToPosCart = function(id) {
   const existing = posCart.find(c => c.id === id);
   if (existing) existing.qty++;
   else posCart.push({ id: item.id, name: item.name, category: item.category, price: item.price, qty: 1 });
+  if (typeof applySelectedPosOffer === 'function') applySelectedPosOffer();
   renderStaff();
 };
 window.changePosQty = function(idx, delta) {
   posCart[idx].qty += delta;
   if (posCart[idx].qty <= 0) posCart.splice(idx, 1);
+  if (typeof applySelectedPosOffer === 'function') applySelectedPosOffer();
   renderStaff();
 };
 window.removePosItem = function(idx) { posCart.splice(idx, 1); renderStaff(); };
@@ -2234,7 +2252,8 @@ window.posCheckout = async function() {
       const res = await apiPost('/api/orders/sales', {
         studentCode: s.studentId, memberCode: lookupCode, items, discount,
         paymentMethod: posPaymentMethod, cashReceived: posCashReceived || 0,
-        cashierName: CASHIER_NAME, offerUsed, customerType: s.customerType, pointsMultiplier
+        cashierName: CASHIER_NAME, offerUsed, offerId: window._posOfferId || null,
+        customerType: s.customerType, pointsMultiplier
       });
       await syncFromApi();
       const updated = getStudent(lookupCode) || s;
@@ -2247,7 +2266,7 @@ window.posCheckout = async function() {
         offerUsed, cashierName: CASHIER_NAME, createdAt: new Date().toISOString()
       }, updated, receipt.freeDrinkUnlocked);
       posCart = []; posDiscount = 0; posCashReceived = 0; window.posSelectedOfferId = null;
-      window._posOfferUsed = null; window._posPointsMultiplier = 1;
+      window._posOfferUsed = null; window._posPointsMultiplier = 1; window._posOfferId = null;
       toast('Sale saved to Neon database', 'success');
       renderStaff();
     } catch (err) { toast(err.message || 'Sale failed', 'error'); }
@@ -2297,7 +2316,7 @@ window.posCheckout = async function() {
 
   showReceiptModal(saleTx, s, freeDrinkUnlocked);
   posCart = []; posDiscount = 0; posCashReceived = 0; window.posSelectedOfferId = null;
-  window._posOfferUsed = null; window._posPointsMultiplier = 1;
+  window._posOfferUsed = null; window._posPointsMultiplier = 1; window._posOfferId = null;
   toast('Sale recorded successfully', 'success');
   renderStaff();
 };
@@ -2836,22 +2855,37 @@ function renderAdminOffers() {
   const data = loadData();
   const offers = data.offers || [];
   return `
-    <div class="admin-header"><h1>Offers &amp; Promotions</h1><p>Manage student and member offers</p></div>
+    <div class="admin-header"><h1>Offers &amp; Promotions</h1><p>Manage City University student and member offers</p></div>
     <button class="btn btn-primary btn-sm" style="margin-bottom:16px" onclick="showAddOfferModal()">+ Add Offer</button>
     <table class="data-table">
-      <thead><tr><th>Offer Name</th><th>Eligibility</th><th>Type</th><th>Value</th><th>Category</th><th>Active</th></tr></thead>
-      <tbody>${offers.map(o => `<tr>
+      <thead><tr><th>Offer Name</th><th>Eligibility</th><th>Type</th><th>Value</th><th>Category</th><th>Dates</th><th>Active</th><th>Actions</th></tr></thead>
+      <tbody>${offers.map(o => {
+        const oid = o.offerId || o.id;
+        const elig = o.customerTypeEligibility === 'city_student' ? 'City Students' : o.customerTypeEligibility === 'general_customer' ? 'General' : 'All';
+        return `<tr>
         <td>${o.offerName}</td>
-        <td>${o.customerTypeEligibility}</td>
+        <td>${elig}</td>
         <td>${o.discountType}</td>
         <td>${o.discountValue}</td>
         <td>${o.appliesToCategory || '—'}</td>
-        <td><input type="checkbox" ${o.isActive ? 'checked' : ''} onchange="toggleOffer('${o.offerId || o.id}',this.checked)"></td>
-      </tr>`).join('')}</tbody>
+        <td style="font-size:0.8rem">${o.startDate || '—'} ${o.endDate ? '→ ' + o.endDate : ''}</td>
+        <td><input type="checkbox" ${o.isActive ? 'checked' : ''} onchange="toggleOffer('${oid}',this.checked)"></td>
+        <td><button class="btn btn-sm btn-outline" onclick="editOfferModal('${oid}')">Edit</button></td>
+      </tr>`;
+      }).join('')}</tbody>
     </table>`;
 }
 
-window.toggleOffer = function(id, active) {
+window.toggleOffer = async function(id, active) {
+  if (apiEnabled) {
+    try {
+      await apiPatch(`/api/offers/${id}/status`, { isActive: active });
+      await syncFromApi();
+      toast('Offer updated', 'success');
+      renderAdmin();
+      return;
+    } catch (e) { toast(e.message || 'Update failed', 'error'); return; }
+  }
   const data = loadData();
   const o = data.offers.find(x => (x.offerId || x.id) === id);
   if (o) { o.isActive = active; saveData(data); toast('Offer updated', 'success'); renderAdmin(); }
@@ -2859,34 +2893,104 @@ window.toggleOffer = function(id, active) {
 
 window.showAddOfferModal = function() {
   showModal('Add Offer', `
-    <div class="input-group"><label>Offer Name</label><input id="off-name"></div>
+    <div class="input-group"><label>Offer Name *</label><input id="off-name"></div>
     <div class="input-group"><label>Eligibility</label>
-      <select id="off-elig"><option value="city_student">City University students</option>
-      <option value="general_customer">General customers</option><option value="all">All members</option></select></div>
+      <select id="off-elig"><option value="city_student">City University students only</option>
+      <option value="general_customer">General customers only</option><option value="all">All members</option></select></div>
     <div class="input-group"><label>Discount Type</label>
       <select id="off-type"><option value="percentage">Percentage</option><option value="fixed_amount">Fixed Amount</option>
       <option value="special_price">Special Price</option><option value="double_points">Double Points</option></select></div>
-    <div class="input-group"><label>Value</label><input id="off-val" type="number"></div>
-    <div class="input-group"><label>Category (optional)</label><input id="off-cat"></div>`,
+    <div class="input-group"><label>Value</label><input id="off-val" type="number" step="0.01"></div>
+    <div class="input-group"><label>Category (optional)</label><input id="off-cat" placeholder="Coffee, Food…"></div>
+    <div class="input-group"><label>Start Date (optional)</label><input id="off-start" type="date"></div>
+    <div class="input-group"><label>End Date (optional)</label><input id="off-end" type="date"></div>`,
     `<button class="btn btn-outline btn-sm" onclick="closeModal()">Cancel</button>
-     <button class="btn btn-primary btn-sm" onclick="saveNewOffer()">Save</button>`);
+     <button class="btn btn-primary btn-sm" onclick="saveNewOffer()">Save Offer</button>`);
 };
 
-window.saveNewOffer = function() {
+window.saveNewOffer = async function() {
+  const payload = {
+    offerName: document.getElementById('off-name')?.value?.trim(),
+    customerTypeEligibility: document.getElementById('off-elig')?.value,
+    discountType: document.getElementById('off-type')?.value,
+    discountValue: parseFloat(document.getElementById('off-val')?.value) || 0,
+    appliesToCategory: document.getElementById('off-cat')?.value?.trim() || null,
+    startDate: document.getElementById('off-start')?.value || null,
+    endDate: document.getElementById('off-end')?.value || null,
+    isActive: true,
+  };
+  if (!payload.offerName) { toast('Offer name required', 'error'); return; }
+  if (apiEnabled) {
+    try {
+      await apiPost('/api/offers', payload);
+      await syncFromApi();
+      closeModal();
+      toast('Offer added', 'success');
+      renderAdmin();
+      return;
+    } catch (e) { toast(e.message || 'Save failed', 'error'); return; }
+  }
   const data = loadData();
   if (!data.offers) data.offers = [];
-  data.offers.push({
-    offerId: 'offer-' + Date.now(),
-    offerName: document.getElementById('off-name').value,
-    customerTypeEligibility: document.getElementById('off-elig').value,
-    discountType: document.getElementById('off-type').value,
-    discountValue: parseFloat(document.getElementById('off-val').value) || 0,
-    appliesToCategory: document.getElementById('off-cat').value || null,
-    isActive: true
-  });
+  data.offers.push({ offerId: 'offer-' + Date.now(), ...payload });
   saveData(data);
   closeModal();
   toast('Offer added', 'success');
+  renderAdmin();
+};
+
+window.editOfferModal = function(id) {
+  const o = loadData().offers.find(x => (x.offerId || x.id) === id);
+  if (!o) return;
+  showModal('Edit Offer', `
+    <div class="input-group"><label>Offer Name</label><input id="edit-off-name" value="${o.offerName || ''}"></div>
+    <div class="input-group"><label>Eligibility</label>
+      <select id="edit-off-elig">
+        <option value="city_student" ${o.customerTypeEligibility === 'city_student' ? 'selected' : ''}>City University students</option>
+        <option value="general_customer" ${o.customerTypeEligibility === 'general_customer' ? 'selected' : ''}>General customers</option>
+        <option value="all" ${o.customerTypeEligibility === 'all' ? 'selected' : ''}>All members</option>
+      </select></div>
+    <div class="input-group"><label>Discount Type</label>
+      <select id="edit-off-type">
+        <option value="percentage" ${o.discountType === 'percentage' ? 'selected' : ''}>Percentage</option>
+        <option value="fixed_amount" ${o.discountType === 'fixed_amount' ? 'selected' : ''}>Fixed Amount</option>
+        <option value="special_price" ${o.discountType === 'special_price' ? 'selected' : ''}>Special Price</option>
+        <option value="double_points" ${o.discountType === 'double_points' ? 'selected' : ''}>Double Points</option>
+      </select></div>
+    <div class="input-group"><label>Value</label><input id="edit-off-val" type="number" step="0.01" value="${o.discountValue || 0}"></div>
+    <div class="input-group"><label>Category</label><input id="edit-off-cat" value="${o.appliesToCategory || ''}"></div>
+    <div class="input-group"><label>Start Date</label><input id="edit-off-start" type="date" value="${o.startDate || ''}"></div>
+    <div class="input-group"><label>End Date</label><input id="edit-off-end" type="date" value="${o.endDate || ''}"></div>`,
+    `<button class="btn btn-outline btn-sm" onclick="closeModal()">Cancel</button>
+     <button class="btn btn-primary btn-sm" onclick="saveEditOffer('${id}')">Save Changes</button>`);
+};
+
+window.saveEditOffer = async function(id) {
+  const payload = {
+    offerName: document.getElementById('edit-off-name')?.value?.trim(),
+    customerTypeEligibility: document.getElementById('edit-off-elig')?.value,
+    discountType: document.getElementById('edit-off-type')?.value,
+    discountValue: parseFloat(document.getElementById('edit-off-val')?.value) || 0,
+    appliesToCategory: document.getElementById('edit-off-cat')?.value?.trim() || null,
+    startDate: document.getElementById('edit-off-start')?.value || null,
+    endDate: document.getElementById('edit-off-end')?.value || null,
+  };
+  if (apiEnabled) {
+    try {
+      await apiPut(`/api/offers/${id}`, payload);
+      await syncFromApi();
+      closeModal();
+      toast('Offer updated', 'success');
+      renderAdmin();
+      return;
+    } catch (e) { toast(e.message || 'Update failed', 'error'); return; }
+  }
+  const data = loadData();
+  const o = data.offers.find(x => (x.offerId || x.id) === id);
+  if (o) Object.assign(o, payload);
+  saveData(data);
+  closeModal();
+  toast('Offer updated', 'success');
   renderAdmin();
 };
 

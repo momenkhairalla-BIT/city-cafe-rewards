@@ -237,12 +237,17 @@
 
   window.calcOfferDiscount = function (offer, cart, subtotal) {
     if (!offer) return { discount: 0, pointsMultiplier: 1, label: '' };
+    const slug = offer.slug || offer.offerId || '';
+    const name = offer.offerName || '';
     if (offer.discountType === 'double_points') {
       return { discount: 0, pointsMultiplier: Number(offer.discountValue) || 2, label: offer.offerName };
     }
     if (offer.discountType === 'percentage') {
       let base = subtotal;
-      if (offer.appliesToCategory) {
+      if (slug === 'student-drink-10' || name.includes('10% Student Drink')) {
+        base = cart.filter(c => c.category === 'Coffee' || c.category === 'Iced Drinks')
+          .reduce((s, i) => s + i.price * i.qty, 0);
+      } else if (offer.appliesToCategory) {
         base = cart.filter(c => c.category === offer.appliesToCategory).reduce((s, i) => s + i.price * i.qty, 0);
       }
       const d = base * (Number(offer.discountValue) / 100);
@@ -261,6 +266,31 @@
       }
     }
     return { discount: 0, pointsMultiplier: 1, label: '' };
+  };
+
+  window.applySelectedPosOffer = function () {
+    const s = typeof getScannedStudent === 'function' ? getScannedStudent() : null;
+    window._posOfferUsed = null;
+    window._posPointsMultiplier = 1;
+    window._posOfferId = null;
+    posDiscount = 0;
+    if (!window.posSelectedOfferId || !s || !posCart.length) return;
+    const data = loadData();
+    const offer = (data.offers || []).find(o =>
+      (o.offerId || o.id) === window.posSelectedOfferId || o.slug === window.posSelectedOfferId
+    );
+    if (!offer) return;
+    if (offer.customerTypeEligibility === 'city_student' && s.customerType === 'general_customer') {
+      toast('This offer is only available for City University students.', 'error');
+      window.posSelectedOfferId = null;
+      return;
+    }
+    const subtotal = posCart.reduce((sum, i) => sum + i.price * i.qty, 0);
+    const calc = calcOfferDiscount(offer, posCart, subtotal);
+    posDiscount = calc.discount;
+    window._posOfferUsed = calc.label || offer.offerName;
+    window._posPointsMultiplier = calc.pointsMultiplier;
+    window._posOfferId = offer.offerId || offer.id;
   };
 
   window.renderBarcode = function (code) {
@@ -497,22 +527,16 @@
   const origPosCheckout = window.posCheckout;
 
   window.posCheckout = async function () {
+    if (typeof applySelectedPosOffer === 'function') applySelectedPosOffer();
     const s = getScannedStudent();
     if (!s) { toast('Scan member first', 'error'); return; }
-    window._posOfferUsed = null;
-    window._posPointsMultiplier = 1;
     const data = loadData();
-    const offer = (data.offers || []).find(o => (o.offerId || o.id) === window.posSelectedOfferId);
-    const subtotal = posCart.reduce((sum, i) => sum + i.price * i.qty, 0);
-    if (offer) {
-      if (offer.customerTypeEligibility === 'city_student' && s.customerType === 'general_customer') {
-        toast('This offer is only for City University students.', 'error');
-        return;
-      }
-      const calc = calcOfferDiscount(offer, posCart, subtotal);
-      posDiscount = Math.max(posDiscount || 0, calc.discount);
-      window._posOfferUsed = calc.label || offer.offerName;
-      window._posPointsMultiplier = calc.pointsMultiplier;
+    const offer = (data.offers || []).find(o =>
+      (o.offerId || o.id) === window.posSelectedOfferId || o.slug === window.posSelectedOfferId
+    );
+    if (offer && offer.customerTypeEligibility === 'city_student' && s.customerType === 'general_customer') {
+      toast('This offer is only available for City University students.', 'error');
+      return;
     }
     return origPosCheckout();
   };
