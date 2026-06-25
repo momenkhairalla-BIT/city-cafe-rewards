@@ -1,0 +1,24 @@
+# Render Blueprint — City Café Rewards
+# Deploy: https://dashboard.render.com → New → Blueprint → connect this repo
+#
+# After first deploy, set DATABASE_URL in the Render dashboard
+# (paste your Neon PostgreSQL connection string).
+
+services:
+  - type: web
+    name: city-cafe-rewards
+    runtime: node
+    rootDir: production/api
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /health
+    plan: free
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: JWT_EXPIRES_IN
+        value: 7d
+      - key: JWT_SECRET
+        generateValue: true
+      - key: DATABASE_URL
+        sync: false

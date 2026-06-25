@@ -1,0 +1,18 @@
+# Railway deploy — alternative to Render
+# Docs: https://docs.railway.app/guides/nodejs
+#
+# 1. Install Railway CLI: npm i -g @railway/cli
+# 2. railway login
+# 3. From repo root: railway init
+# 4. Set root directory to production/api in Railway dashboard
+# 5. Add env vars: DATABASE_URL, JWT_SECRET, NODE_ENV=production
+
+[build]
+builder = "NIXPACKS"
+buildCommand = "npm install"
+
+[deploy]
+startCommand = "npm start"
+healthcheckPath = "/health"
+healthcheckTimeout = 120
+restartPolicyType = "ON_FAILURE"

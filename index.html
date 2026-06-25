@@ -1,0 +1,3260 @@
+<!-- City Café Rewards — How to Use:
+  1. Start API: cd production/api && npm run dev
+  2. Open http://localhost:3001 in browser (NOT index.html as a file).
+  3. Badge shows "Live · Neon DB" when connected.
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>City Café Rewards — City University Malaysia</title>
+  <style>
+    :root {
+      --black: #0B0B0D;
+      --pink: #E91E63;
+      --soft-pink: #FCE4EC;
+      --white: #FFFFFF;
+      --light-grey: #F4F4F4;
+      --dark-grey: #333333;
+      --shadow: 0 4px 20px rgba(11, 11, 13, 0.08);
+      --shadow-lg: 0 8px 32px rgba(11, 11, 13, 0.12);
+      --radius: 16px;
+      --radius-sm: 10px;
+      --transition: 0.25s ease;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--light-grey);
+      color: var(--dark-grey);
+      line-height: 1.5;
+      min-height: 100vh;
+    }
+    .hidden { display: none !important; }
+
+    /* Role Switcher */
+    .role-switcher {
+      background: var(--black);
+      color: var(--white);
+      padding: 10px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 10px;
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+    }
+    .role-switcher .brand { font-weight: 700; font-size: 0.95rem; }
+    .role-switcher .brand span { color: var(--pink); }
+    .role-tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+    .role-tab {
+      background: transparent;
+      border: 1px solid rgba(255,255,255,0.2);
+      color: var(--white);
+      padding: 6px 14px;
+      border-radius: 20px;
+      cursor: pointer;
+      font-size: 0.8rem;
+      transition: var(--transition);
+    }
+    .role-tab:hover { border-color: var(--pink); color: var(--pink); }
+    .role-tab.active { background: var(--pink); border-color: var(--pink); color: var(--white); }
+    .btn-home {
+      background: transparent;
+      border: 1px solid rgba(255,255,255,0.3);
+      color: var(--white);
+      padding: 6px 12px;
+      border-radius: 20px;
+      cursor: pointer;
+      font-size: 0.8rem;
+      transition: var(--transition);
+    }
+    .btn-home:hover { background: rgba(255,255,255,0.1); }
+    .api-status-badge {
+      font-size: 0.65rem; font-weight: 600; padding: 4px 10px; border-radius: 20px;
+    }
+    .api-status-badge.live { background: rgba(76,175,80,0.2); color: #81c784; border: 1px solid rgba(76,175,80,0.4); }
+    .api-status-badge.offline { background: rgba(255,152,0,0.15); color: #ffb74d; border: 1px solid rgba(255,152,0,0.3); }
+    .api-status-badge.syncing { background: rgba(233,30,99,0.15); color: var(--pink); border: 1px solid rgba(233,30,99,0.3); }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 12px 24px;
+      border: none;
+      border-radius: var(--radius-sm);
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: var(--transition);
+    }
+    .btn-primary { background: var(--pink); color: var(--white); }
+    .btn-primary:hover { background: #c2185b; transform: translateY(-1px); }
+    .btn-secondary { background: var(--black); color: var(--white); }
+    .btn-secondary:hover { background: #222; }
+    .btn-outline { background: transparent; border: 2px solid var(--pink); color: var(--pink); }
+    .btn-outline:hover { background: var(--soft-pink); }
+    .btn-sm { padding: 8px 16px; font-size: 0.85rem; }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+    /* Toast */
+    #toast-container {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .toast {
+      background: var(--black);
+      color: var(--white);
+      padding: 14px 20px;
+      border-radius: var(--radius-sm);
+      box-shadow: var(--shadow-lg);
+      animation: slideIn 0.3s ease;
+      max-width: 320px;
+      border-left: 4px solid var(--pink);
+    }
+    .toast.error { border-left-color: #f44336; }
+    .toast.success { border-left-color: #4caf50; }
+    @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+    /* Entry Screen */
+    #entry-screen {
+      min-height: calc(100vh - 52px);
+      padding: 40px 24px;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+    .entry-header { text-align: center; margin-bottom: 48px; }
+    .entry-header h1 { font-size: 2.2rem; color: var(--black); margin-bottom: 8px; }
+    .entry-header h1 span { color: var(--pink); }
+    .entry-header .subtitle { color: var(--dark-grey); font-size: 1.05rem; }
+    .entry-header .campus { color: #888; font-size: 0.9rem; margin-top: 4px; }
+    .role-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px; margin-bottom: 48px; }
+    .role-card {
+      background: var(--white);
+      border-radius: var(--radius);
+      padding: 32px 28px;
+      box-shadow: var(--shadow);
+      transition: var(--transition);
+      text-align: center;
+    }
+    .role-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-lg); }
+    .role-card .icon { font-size: 2.5rem; margin-bottom: 16px; }
+    .role-card h2 { color: var(--black); margin-bottom: 8px; }
+    .role-card p { color: #888; font-size: 0.9rem; margin-bottom: 20px; }
+    .system-diagram {
+      background: var(--white);
+      border-radius: var(--radius);
+      padding: 32px;
+      box-shadow: var(--shadow);
+      text-align: center;
+    }
+    .system-diagram h3 { color: var(--black); margin-bottom: 24px; }
+    .diagram-flow { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 12px; }
+    .diagram-node {
+      background: var(--soft-pink);
+      color: var(--black);
+      padding: 12px 20px;
+      border-radius: var(--radius-sm);
+      font-weight: 600;
+      font-size: 0.85rem;
+    }
+    .diagram-node.central {
+      background: var(--black);
+      color: var(--white);
+      padding: 16px 24px;
+    }
+    .diagram-arrow { color: var(--pink); font-size: 1.2rem; font-weight: bold; }
+    .diagram-note { margin-top: 20px; color: #888; font-size: 0.85rem; font-style: italic; }
+
+    /* Customer Mobile App */
+    #customer-app { display: flex; justify-content: center; padding: 20px; min-height: calc(100vh - 52px); }
+    .phone-frame {
+      width: 100%;
+      max-width: 390px;
+      background: var(--white);
+      border-radius: 32px;
+      box-shadow: var(--shadow-lg);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      min-height: 680px;
+      border: 3px solid var(--black);
+    }
+    .phone-header {
+      background: var(--black);
+      color: var(--white);
+      padding: 20px 20px 16px;
+    }
+    .phone-header h2 { font-size: 1.1rem; }
+    .phone-header p { font-size: 0.75rem; opacity: 0.7; }
+    .phone-content { flex: 1; overflow-y: auto; padding: 16px; background: var(--light-grey); }
+    .bottom-nav {
+      display: flex;
+      background: var(--white);
+      border-top: 1px solid #eee;
+      padding: 8px 0 12px;
+    }
+    .nav-item {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      padding: 6px;
+      border: none;
+      background: none;
+      cursor: pointer;
+      color: #999;
+      font-size: 0.65rem;
+      transition: var(--transition);
+    }
+    .nav-item .nav-icon { font-size: 1.3rem; }
+    .nav-item.active { color: var(--pink); }
+    .membership-card {
+      background: linear-gradient(135deg, var(--black) 60%, var(--pink));
+      color: var(--white);
+      border-radius: var(--radius);
+      padding: 24px;
+      margin-bottom: 16px;
+      position: relative;
+      overflow: hidden;
+    }
+    .membership-card::after {
+      content: '';
+      position: absolute;
+      top: -30px; right: -30px;
+      width: 100px; height: 100px;
+      background: rgba(233,30,99,0.3);
+      border-radius: 50%;
+    }
+    .membership-card .card-label { font-size: 0.75rem; opacity: 0.8; }
+    .membership-card .card-name { font-size: 1.3rem; font-weight: 700; margin: 4px 0; }
+    .membership-card .card-id { font-size: 0.8rem; opacity: 0.7; }
+    .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+    .stat-box {
+      background: var(--white);
+      border-radius: var(--radius-sm);
+      padding: 16px;
+      box-shadow: var(--shadow);
+    }
+    .stat-box .stat-value { font-size: 1.5rem; font-weight: 700; color: var(--pink); }
+    .stat-box .stat-label { font-size: 0.75rem; color: #888; }
+    .progress-section {
+      background: var(--white);
+      border-radius: var(--radius-sm);
+      padding: 16px;
+      margin-bottom: 16px;
+      box-shadow: var(--shadow);
+    }
+    .progress-bar-bg {
+      background: var(--light-grey);
+      border-radius: 10px;
+      height: 12px;
+      overflow: hidden;
+      margin: 10px 0;
+    }
+    .progress-bar-fill {
+      background: linear-gradient(90deg, var(--pink), #ff6090);
+      height: 100%;
+      border-radius: 10px;
+      transition: width 0.5s ease;
+    }
+    .section-title { font-weight: 700; color: var(--black); margin-bottom: 12px; font-size: 0.95rem; }
+    .tx-item {
+      background: var(--white);
+      border-radius: var(--radius-sm);
+      padding: 12px;
+      margin-bottom: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    }
+    .tx-item .tx-info { font-size: 0.85rem; }
+    .tx-item .tx-type { font-size: 0.7rem; color: var(--pink); font-weight: 600; text-transform: uppercase; }
+    .tx-item .tx-amount { font-weight: 700; font-size: 0.85rem; }
+    .tx-positive { color: var(--pink); }
+    .tx-negative { color: #f44336; }
+
+    /* QR Code */
+    .qr-container { text-align: center; padding: 16px 0; }
+    .qr-code {
+      width: 180px; height: 180px;
+      margin: 0 auto 16px;
+      background: var(--white);
+      border: 3px solid var(--black);
+      border-radius: 12px;
+      padding: 12px;
+      display: grid;
+      grid-template-columns: repeat(8, 1fr);
+      grid-template-rows: repeat(8, 1fr);
+      gap: 2px;
+    }
+    .qr-cell { border-radius: 1px; }
+    .qr-cell.filled { background: var(--black); }
+    .profile-card-mini {
+      background: var(--soft-pink);
+      border-radius: var(--radius-sm);
+      padding: 16px;
+      margin-bottom: 16px;
+      text-align: center;
+    }
+
+    /* Voucher Cards */
+    .voucher-card {
+      background: var(--white);
+      border-radius: var(--radius);
+      padding: 20px;
+      margin-bottom: 12px;
+      box-shadow: var(--shadow);
+      border-left: 4px solid var(--pink);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .voucher-card .voucher-info h4 { color: var(--black); }
+    .voucher-card .voucher-info p { font-size: 0.85rem; color: #888; }
+    .voucher-cost { font-weight: 700; color: var(--pink); font-size: 0.9rem; }
+    .redeem-msg {
+      background: var(--soft-pink);
+      border-radius: var(--radius-sm);
+      padding: 16px;
+      margin-top: 12px;
+      text-align: center;
+      font-size: 0.9rem;
+      color: var(--dark-grey);
+      animation: fadeIn 0.3s ease;
+    }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+    /* Student Selector */
+    .student-selector { padding: 16px; }
+    .student-btn {
+      display: block;
+      width: 100%;
+      background: var(--white);
+      border: 2px solid transparent;
+      border-radius: var(--radius-sm);
+      padding: 16px;
+      margin-bottom: 10px;
+      cursor: pointer;
+      text-align: left;
+      transition: var(--transition);
+      box-shadow: var(--shadow);
+    }
+    .student-btn:hover { border-color: var(--pink); }
+    .student-btn strong { display: block; color: var(--black); }
+    .student-btn span { font-size: 0.85rem; color: #888; }
+
+    /* Staff Tablet App */
+    #staff-app { padding: 20px; max-width: 1280px; margin: 0 auto; min-height: calc(100vh - 52px); }
+    .staff-container {
+      background: var(--white);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-lg);
+      overflow: hidden;
+    }
+    .staff-tabs {
+      display: flex;
+      background: var(--black);
+      overflow-x: auto;
+    }
+    .staff-tab {
+      flex: 1;
+      padding: 16px;
+      background: none;
+      border: none;
+      color: rgba(255,255,255,0.6);
+      font-weight: 600;
+      cursor: pointer;
+      transition: var(--transition);
+      white-space: nowrap;
+      font-size: 0.9rem;
+    }
+    .staff-tab.active { color: var(--white); border-bottom: 3px solid var(--pink); }
+    .staff-tab:hover { color: var(--pink); }
+    .staff-content { padding: 24px; }
+
+    /* Scanner */
+    .scanner-box {
+      width: 100%;
+      max-width: 320px;
+      height: 200px;
+      margin: 0 auto 20px;
+      background: var(--black);
+      border-radius: var(--radius);
+      position: relative;
+      overflow: hidden;
+      border: 3px solid var(--pink);
+    }
+    .scanner-box::before {
+      content: '';
+      position: absolute;
+      inset: 20px;
+      border: 2px dashed rgba(233,30,99,0.5);
+      border-radius: 8px;
+    }
+    .scan-line {
+      position: absolute;
+      left: 20px; right: 20px;
+      height: 2px;
+      background: var(--pink);
+      box-shadow: 0 0 10px var(--pink);
+      animation: scan 2s linear infinite;
+    }
+    @keyframes scan { 0%, 100% { top: 20px; } 50% { top: calc(100% - 22px); } }
+    .scanner-label {
+      position: absolute;
+      bottom: 12px;
+      left: 0; right: 0;
+      text-align: center;
+      color: rgba(255,255,255,0.5);
+      font-size: 0.8rem;
+    }
+    .input-group { margin-bottom: 16px; }
+    .input-group label { display: block; font-weight: 600; margin-bottom: 6px; font-size: 0.9rem; color: var(--black); }
+    .input-group input, .input-group select {
+      width: 100%;
+      padding: 12px 16px;
+      border: 2px solid #eee;
+      border-radius: var(--radius-sm);
+      font-size: 0.95rem;
+      transition: var(--transition);
+    }
+    .input-group input:focus, .input-group select:focus { outline: none; border-color: var(--pink); }
+    .quick-btns { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+    .quick-btn {
+      background: var(--soft-pink);
+      border: none;
+      padding: 8px 14px;
+      border-radius: 20px;
+      cursor: pointer;
+      font-size: 0.8rem;
+      transition: var(--transition);
+    }
+    .quick-btn:hover { background: var(--pink); color: var(--white); }
+    .student-info-card {
+      background: var(--soft-pink);
+      border-radius: var(--radius);
+      padding: 20px;
+      margin-top: 20px;
+    }
+    .student-info-card h3 { color: var(--black); margin-bottom: 12px; }
+    .info-row { display: flex; justify-content: space-between; padding: 6px 0; font-size: 0.9rem; border-bottom: 1px solid rgba(0,0,0,0.05); }
+    .info-row:last-child { border-bottom: none; }
+
+    /* Menu Grid */
+    .menu-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; margin-bottom: 20px; }
+    .menu-item-card {
+      background: var(--light-grey);
+      border: 2px solid transparent;
+      border-radius: var(--radius-sm);
+      padding: 16px;
+      cursor: pointer;
+      text-align: center;
+      transition: var(--transition);
+    }
+    .menu-item-card:hover { border-color: var(--pink); }
+    .menu-item-card.selected { border-color: var(--pink); background: var(--soft-pink); }
+    .menu-item-card .menu-name { font-weight: 600; font-size: 0.9rem; color: var(--black); }
+    .menu-item-card .menu-price { color: var(--pink); font-weight: 700; margin-top: 4px; }
+    .cart-summary {
+      background: var(--black);
+      color: var(--white);
+      border-radius: var(--radius);
+      padding: 20px;
+      margin-bottom: 16px;
+    }
+    .cart-summary h4 { margin-bottom: 12px; }
+    .cart-line { display: flex; justify-content: space-between; padding: 4px 0; font-size: 0.9rem; }
+    .cart-total { font-size: 1.2rem; font-weight: 700; color: var(--pink); margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.2); }
+    .receipt {
+      background: var(--white);
+      border: 2px dashed var(--pink);
+      border-radius: var(--radius);
+      padding: 24px;
+      margin-top: 20px;
+      text-align: center;
+    }
+    .receipt h3 { color: var(--pink); margin-bottom: 16px; }
+    .receipt .receipt-line { padding: 4px 0; font-size: 0.9rem; }
+
+    /* Redeem options */
+    .redeem-option {
+      background: var(--light-grey);
+      border-radius: var(--radius-sm);
+      padding: 16px;
+      margin-bottom: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .redeem-option .redeem-info h4 { font-size: 0.95rem; }
+    .redeem-option .redeem-info p { font-size: 0.8rem; color: #888; }
+
+    /* POS System */
+    .pos-header-bar {
+      display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;
+      background: var(--black); color: var(--white); margin: -24px -24px 20px; padding: 14px 20px;
+    }
+    .pos-header-bar .pos-badges { display: flex; gap: 8px; flex-wrap: wrap; }
+    .pos-badge {
+      font-size: 0.7rem; font-weight: 600; padding: 4px 10px; border-radius: 20px;
+      background: rgba(233,30,99,0.2); color: var(--pink); border: 1px solid rgba(233,30,99,0.4);
+    }
+    .pos-badge.muted { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.7); border-color: rgba(255,255,255,0.15); }
+    .pos-layout { display: grid; grid-template-columns: 1fr 340px; gap: 20px; align-items: start; }
+    .pos-products-panel { min-width: 0; }
+    .pos-student-strip {
+      background: var(--soft-pink); border-radius: var(--radius-sm); padding: 14px 16px; margin-bottom: 16px;
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px; font-size: 0.85rem;
+    }
+    .pos-student-strip strong { display: block; color: var(--black); }
+    .pos-student-strip span { color: #666; font-size: 0.75rem; }
+    .pos-warning {
+      background: #fff3e0; border: 2px solid #ffb74d; border-radius: var(--radius-sm);
+      padding: 16px; text-align: center; color: #e65100; font-weight: 600; margin-bottom: 16px;
+    }
+    .pos-categories { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+    .pos-cat-btn {
+      padding: 8px 16px; border: 2px solid #eee; border-radius: 20px; background: var(--white);
+      cursor: pointer; font-size: 0.85rem; font-weight: 600; transition: var(--transition);
+    }
+    .pos-cat-btn.active { border-color: var(--pink); background: var(--soft-pink); color: var(--pink); }
+    .pos-product-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px;
+    }
+    .pos-product-card {
+      background: var(--white); border: 2px solid #eee; border-radius: var(--radius-sm);
+      padding: 14px; transition: var(--transition); display: flex; flex-direction: column; gap: 8px;
+    }
+    .pos-product-card:hover { border-color: var(--pink); box-shadow: var(--shadow); }
+    .pos-product-card .pp-name { font-weight: 700; color: var(--black); font-size: 0.9rem; }
+    .pos-product-card .pp-cat { font-size: 0.7rem; color: #999; text-transform: uppercase; letter-spacing: 0.03em; }
+    .pos-product-card .pp-price { color: var(--pink); font-weight: 700; font-size: 1rem; }
+    .pos-cart-panel {
+      background: var(--white); border-radius: var(--radius); box-shadow: var(--shadow-lg);
+      position: sticky; top: 70px; overflow: hidden; border: 2px solid #eee;
+    }
+    .pos-cart-header {
+      background: var(--black); color: var(--white); padding: 14px 16px; font-weight: 700;
+    }
+    .pos-cart-body { padding: 16px; max-height: 280px; overflow-y: auto; }
+    .pos-cart-item {
+      display: grid; grid-template-columns: 1fr auto; gap: 4px 8px; padding: 10px 0;
+      border-bottom: 1px solid #f0f0f0; font-size: 0.85rem;
+    }
+    .pos-cart-item .pci-name { font-weight: 600; color: var(--black); }
+    .pos-cart-item .pci-meta { font-size: 0.75rem; color: #888; }
+    .pos-cart-item .pci-total { font-weight: 700; color: var(--pink); text-align: right; }
+    .pos-qty-row { display: flex; align-items: center; gap: 6px; margin-top: 6px; }
+    .pos-qty-btn {
+      width: 28px; height: 28px; border: none; border-radius: 6px; background: var(--soft-pink);
+      color: var(--pink); font-weight: 700; cursor: pointer; font-size: 1rem;
+    }
+    .pos-qty-btn:hover { background: var(--pink); color: var(--white); }
+    .pos-remove-btn {
+      background: none; border: none; color: #f44336; font-size: 0.75rem; cursor: pointer; margin-left: auto;
+    }
+    .pos-cart-footer { padding: 16px; background: var(--light-grey); border-top: 2px solid #eee; }
+    .pos-summary-line { display: flex; justify-content: space-between; padding: 4px 0; font-size: 0.9rem; }
+    .pos-summary-line.total { font-size: 1.15rem; font-weight: 700; color: var(--black); margin-top: 8px; padding-top: 8px; border-top: 2px solid #ddd; }
+    .pos-summary-line.earn { color: var(--pink); font-weight: 600; }
+    .pos-checkout-btn {
+      width: 100%; padding: 16px; font-size: 1rem; margin-top: 12px; border-radius: var(--radius-sm);
+    }
+    .pos-cart-actions { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+    .pos-cart-actions .btn { flex: 1; min-width: 100px; }
+    .pos-payment-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 12px 0; }
+    .pos-pay-btn {
+      padding: 10px; border: 2px solid #eee; border-radius: var(--radius-sm); background: var(--white);
+      cursor: pointer; font-size: 0.8rem; font-weight: 600; transition: var(--transition);
+    }
+    .pos-pay-btn.active { border-color: var(--pink); background: var(--soft-pink); color: var(--pink); }
+    .modal.receipt-modal { max-width: 440px; }
+    .receipt-print-area { font-family: 'Courier New', monospace; font-size: 0.85rem; line-height: 1.6; }
+    .receipt-print-area .r-title { text-align: center; font-weight: 700; font-size: 1rem; margin-bottom: 4px; }
+    .receipt-print-area .r-sub { text-align: center; font-size: 0.8rem; color: #666; margin-bottom: 12px; }
+    .receipt-print-area .r-divider { border-top: 1px dashed #ccc; margin: 10px 0; }
+    .receipt-print-area .r-row { display: flex; justify-content: space-between; gap: 8px; }
+    .sales-history-card {
+      background: var(--white); border-radius: var(--radius-sm); padding: 16px; margin-bottom: 10px;
+      box-shadow: var(--shadow); border-left: 4px solid var(--pink);
+    }
+    .sales-history-card .sh-top { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }
+    .sales-history-card .sh-order { font-weight: 700; color: var(--black); }
+    .export-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
+    .export-btn-card {
+      background: var(--white); border: 2px solid #eee; border-radius: var(--radius-sm);
+      padding: 16px; cursor: pointer; transition: var(--transition); text-align: left;
+    }
+    .export-btn-card:hover { border-color: var(--pink); background: var(--soft-pink); }
+    .export-btn-card h4 { color: var(--black); margin-bottom: 4px; font-size: 0.95rem; }
+    .export-btn-card p { font-size: 0.8rem; color: #888; }
+    .menu-admin-row {
+      display: grid; grid-template-columns: 1fr 120px 140px 80px 80px; gap: 10px; align-items: center;
+      padding: 12px 0; border-bottom: 1px solid #f0f0f0; font-size: 0.85rem;
+    }
+    .menu-admin-row.inactive { opacity: 0.5; }
+    @media (max-width: 900px) {
+      .pos-layout { grid-template-columns: 1fr; }
+      .pos-cart-panel { position: static; }
+      .menu-admin-row { grid-template-columns: 1fr; gap: 6px; }
+    }
+
+    /* Admin Dashboard */
+    #admin-app { display: flex; min-height: calc(100vh - 52px); }
+    .admin-sidebar {
+      width: 240px;
+      background: var(--black);
+      color: var(--white);
+      padding: 24px 0;
+      flex-shrink: 0;
+    }
+    .admin-sidebar .sidebar-brand { padding: 0 20px 24px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+    .admin-sidebar .sidebar-brand h2 { font-size: 1rem; }
+    .admin-sidebar .sidebar-brand p { font-size: 0.7rem; opacity: 0.6; margin-top: 4px; }
+    .sidebar-nav { padding: 16px 0; }
+    .sidebar-item {
+      display: block;
+      width: 100%;
+      padding: 12px 20px;
+      background: none;
+      border: none;
+      color: rgba(255,255,255,0.6);
+      text-align: left;
+      cursor: pointer;
+      font-size: 0.9rem;
+      transition: var(--transition);
+    }
+    .sidebar-item:hover { color: var(--white); background: rgba(255,255,255,0.05); }
+    .sidebar-item.active { color: var(--pink); border-left: 3px solid var(--pink); background: rgba(233,30,99,0.1); }
+    .admin-main { flex: 1; padding: 32px; overflow-y: auto; background: var(--light-grey); }
+    .admin-header { margin-bottom: 28px; }
+    .admin-header h1 { font-size: 1.6rem; color: var(--black); }
+    .admin-header p { color: #888; font-size: 0.9rem; }
+    .kpi-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 16px; margin-bottom: 32px; }
+    .kpi-card {
+      background: var(--white);
+      border-radius: var(--radius);
+      padding: 20px;
+      box-shadow: var(--shadow);
+    }
+    .kpi-card .kpi-value { font-size: 1.8rem; font-weight: 700; color: var(--pink); }
+    .kpi-card .kpi-label { font-size: 0.8rem; color: #888; margin-top: 4px; }
+    .chart-section {
+      background: var(--white);
+      border-radius: var(--radius);
+      padding: 24px;
+      box-shadow: var(--shadow);
+      margin-bottom: 24px;
+    }
+    .chart-section h3 { margin-bottom: 20px; color: var(--black); font-size: 1rem; }
+    .bar-chart { display: flex; align-items: flex-end; gap: 12px; height: 180px; padding-top: 10px; }
+    .bar-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+    .bar {
+      width: 100%;
+      background: linear-gradient(180deg, var(--pink), #ff6090);
+      border-radius: 6px 6px 0 0;
+      min-height: 4px;
+      transition: height 0.5s ease;
+    }
+    .bar-label { font-size: 0.65rem; color: #888; text-align: center; word-break: break-word; }
+    .bar-value { font-size: 0.7rem; font-weight: 700; color: var(--pink); }
+    .pie-chart { display: flex; gap: 24px; align-items: center; flex-wrap: wrap; }
+    .pie-visual {
+      width: 140px; height: 140px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .pie-legend { flex: 1; }
+    .legend-item { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-size: 0.85rem; }
+    .legend-dot { width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0; }
+
+    /* Tables */
+    .data-table-wrap { background: var(--white); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; }
+    .table-toolbar { padding: 16px 20px; display: flex; gap: 12px; flex-wrap: wrap; align-items: center; border-bottom: 1px solid #eee; }
+    .table-toolbar input, .table-toolbar select { padding: 8px 12px; border: 2px solid #eee; border-radius: var(--radius-sm); font-size: 0.85rem; }
+    .data-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    .data-table th { background: var(--black); color: var(--white); padding: 12px 16px; text-align: left; font-weight: 600; }
+    .data-table td { padding: 12px 16px; border-bottom: 1px solid #f0f0f0; }
+    .data-table tr:hover td { background: var(--soft-pink); }
+    .badge {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 12px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+    .badge-pink { background: var(--soft-pink); color: var(--pink); }
+    .badge-green { background: #e8f5e9; color: #2e7d32; }
+
+    /* Modal */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 2000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .modal {
+      background: var(--white);
+      border-radius: var(--radius);
+      padding: 28px;
+      max-width: 520px;
+      width: 100%;
+      max-height: 80vh;
+      overflow-y: auto;
+      box-shadow: var(--shadow-lg);
+    }
+    .modal h3 { margin-bottom: 16px; color: var(--black); }
+    .modal-actions { display: flex; gap: 10px; margin-top: 20px; justify-content: flex-end; }
+
+    /* SOP */
+    .sop-list { list-style: none; }
+    .sop-list li {
+      background: var(--white);
+      border-radius: var(--radius-sm);
+      padding: 16px 20px;
+      margin-bottom: 10px;
+      box-shadow: var(--shadow);
+      display: flex;
+      gap: 16px;
+      align-items: flex-start;
+    }
+    .sop-num {
+      background: var(--pink);
+      color: var(--white);
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      flex-shrink: 0;
+      font-size: 0.85rem;
+    }
+
+    /* Settings */
+    .settings-card {
+      background: var(--white);
+      border-radius: var(--radius);
+      padding: 24px;
+      box-shadow: var(--shadow);
+      margin-bottom: 20px;
+    }
+    .settings-card h3 { margin-bottom: 12px; color: var(--black); }
+    .settings-card p { color: #888; font-size: 0.9rem; margin-bottom: 16px; }
+    .future-list { list-style: none; }
+    .future-list li { padding: 8px 0; border-bottom: 1px solid #f0f0f0; font-size: 0.9rem; }
+    .future-list li::before { content: '→ '; color: var(--pink); font-weight: bold; }
+
+    .empty-state { text-align: center; padding: 40px 20px; color: #999; }
+    .empty-state .empty-icon { font-size: 3rem; margin-bottom: 12px; }
+
+    /* Menu edit rows */
+    .edit-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 0;
+      border-bottom: 1px solid #f0f0f0;
+    }
+    .edit-row input { width: 80px; padding: 6px 10px; border: 2px solid #eee; border-radius: 6px; text-align: right; }
+
+    @media (max-width: 768px) {
+      .admin-sidebar { display: none; }
+      .admin-main { padding: 16px; }
+      .mobile-sidebar-toggle { display: block !important; }
+    }
+    .mobile-sidebar-toggle { display: none; margin-bottom: 12px; }
+
+    .profile-field { padding: 10px 0; border-bottom: 1px solid #eee; }
+    .profile-field label { font-size: 0.75rem; color: #888; display: block; }
+    .profile-field span { font-weight: 600; color: var(--black); }
+    .charts-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px; }
+    .staff-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px; }
+    .staff-stat { background: var(--soft-pink); border-radius: var(--radius-sm); padding: 16px; text-align: center; }
+    .staff-stat .val { font-size: 1.4rem; font-weight: 700; color: var(--pink); }
+    .staff-stat .lbl { font-size: 0.75rem; color: #888; }
+    .filter-tabs { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+    .filter-tab {
+      padding: 8px 16px;
+      border: 2px solid #eee;
+      border-radius: 20px;
+      background: var(--white);
+      cursor: pointer;
+      font-size: 0.85rem;
+      transition: var(--transition);
+    }
+    .filter-tab.active { border-color: var(--pink); background: var(--soft-pink); color: var(--pink); font-weight: 600; }
+
+    /* Login */
+    #login-screen {
+      min-height: 100vh; display: flex; align-items: center; justify-content: center;
+      background: linear-gradient(135deg, var(--black) 0%, #1a1a1f 100%); padding: 24px;
+    }
+    .login-card {
+      background: var(--white); border-radius: 16px; padding: 32px; width: 100%; max-width: 420px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+    .login-card h1 { font-size: 1.5rem; margin-bottom: 4px; }
+    .login-card h1 span { color: var(--pink); }
+    .login-card .subtitle { color: #888; font-size: 0.9rem; margin-bottom: 24px; }
+    .demo-login-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 16px; }
+    .demo-login-grid button { font-size: 0.75rem; padding: 8px; }
+    .login-note { font-size: 0.75rem; color: #999; margin-top: 16px; text-align: center; }
+
+    /* Member badges */
+    .member-type-badge {
+      display: inline-block; padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 600;
+    }
+    .badge-student { background: var(--soft-pink); color: var(--pink); }
+    .badge-general { background: #eee; color: var(--black); }
+    .student-offer-badge { background: var(--pink); color: white; font-size: 0.65rem; padding: 2px 6px; border-radius: 4px; }
+
+    /* Barcode */
+    .barcode-visual { display: flex; align-items: flex-end; justify-content: center; height: 60px; gap: 2px; margin: 16px 0; }
+    .barcode-bar { background: var(--black); height: 100%; }
+    .barcode-code { text-align: center; font-family: monospace; font-size: 0.9rem; letter-spacing: 2px; }
+
+    /* Product images in POS */
+    .pos-product-card .pp-image {
+      width: 100%; height: 80px; border-radius: 8px; object-fit: cover; margin-bottom: 8px;
+      background: linear-gradient(135deg, #f5f5f5, #eee); display: flex; align-items: center; justify-content: center;
+      font-size: 2rem;
+    }
+    .pos-product-card .pp-image img { width: 100%; height: 100%; object-fit: cover; border-radius: 8px; }
+    .pos-offers-panel { background: var(--soft-pink); border-radius: 8px; padding: 12px; margin-bottom: 12px; }
+    .pos-offer-btn { display: block; width: 100%; text-align: left; padding: 8px; margin: 4px 0; border: 1px solid #ddd; border-radius: 6px; background: white; cursor: pointer; font-size: 0.85rem; }
+    .pos-offer-btn.active { border-color: var(--pink); background: var(--soft-pink); }
+    .pos-offer-btn.disabled { opacity: 0.5; cursor: not-allowed; }
+    .scan-hint { font-size: 0.8rem; color: #888; margin-bottom: 12px; }
+    .menu-thumb { width: 48px; height: 48px; border-radius: 6px; object-fit: cover; background: #eee; }
+  </style>
+</head>
+<body>
+
+<div id="toast-container"></div>
+
+<!-- LOGIN SCREEN -->
+<div id="login-screen">
+  <div class="login-card">
+    <h1>City Café <span>Rewards</span></h1>
+    <p class="subtitle">City University Malaysia · Member Login</p>
+    <form id="login-form">
+      <div class="input-group">
+        <label>Email / Username</label>
+        <input type="text" id="login-username" placeholder="admin, staff, CU2024001, general001" autocomplete="username">
+      </div>
+      <div class="input-group">
+        <label>Password</label>
+        <input type="password" id="login-password" placeholder="Password" autocomplete="current-password">
+      </div>
+      <button type="submit" class="btn btn-primary" style="width:100%;margin-top:8px">Login</button>
+    </form>
+    <div style="text-align:center;margin:16px 0">
+      <button class="btn btn-outline btn-sm" onclick="showRegisterModal('city_student')">Register City University Student</button>
+      <button class="btn btn-outline btn-sm" style="margin-left:8px" onclick="showRegisterModal('general_customer')">Register General Customer</button>
+    </div>
+    <p style="font-size:0.85rem;color:#666;margin-top:12px">Demo quick login:</p>
+    <div class="demo-login-grid">
+      <button class="btn btn-secondary btn-sm" onclick="demoLogin('CU2024001','demo123')">Login as Student</button>
+      <button class="btn btn-secondary btn-sm" onclick="demoLogin('general001','demo123')">Login as General Customer</button>
+      <button class="btn btn-secondary btn-sm" onclick="demoLogin('staff','staff123')">Login as Staff</button>
+      <button class="btn btn-secondary btn-sm" onclick="demoLogin('admin','admin123')">Login as Admin</button>
+    </div>
+    <p class="login-note">Passwords are hashed with bcrypt. Sessions use JWT (7-day expiry). Set JWT_SECRET in production.</p>
+  </div>
+</div>
+
+<!-- Role Switcher (shown on all interfaces except entry) -->
+<div id="role-switcher" class="role-switcher hidden">
+  <div class="brand">City Café <span>Rewards</span></div>
+  <span id="api-status-badge" class="api-status-badge offline hidden">Offline</span>
+  <div class="role-tabs">
+    <button class="role-tab" data-role="customer">Customer</button>
+    <button class="role-tab" data-role="staff">Staff Counter</button>
+    <button class="role-tab" data-role="admin">Admin</button>
+  </div>
+  <button class="btn-home" id="btn-back-home">Home</button>
+  <button class="btn-home" id="btn-logout" style="margin-left:8px">Logout</button>
+</div>
+
+<!-- ENTRY SCREEN -->
+<div id="entry-screen">
+  <div class="entry-header">
+    <h1>City Café <span>Rewards</span></h1>
+    <p class="subtitle">City University Malaysia Café Loyalty System</p>
+    <p class="campus">City University Malaysia Café</p>
+  </div>
+  <div class="role-cards">
+    <div class="role-card">
+      <div class="icon">📱</div>
+      <h2>Customer</h2>
+      <p>Phone · view points</p>
+      <button class="btn btn-primary" data-open="customer">Open Customer App</button>
+    </div>
+    <div class="role-card">
+      <div class="icon">📋</div>
+      <h2>Staff Counter</h2>
+      <p>Tablet · record sales</p>
+      <button class="btn btn-primary" data-open="staff">Open Staff App</button>
+    </div>
+    <div class="role-card">
+      <div class="icon">💻</div>
+      <h2>Admin / Owner</h2>
+      <p>Desktop · dashboard</p>
+      <button class="btn btn-primary" data-open="admin">Open Admin Dashboard</button>
+    </div>
+  </div>
+  <div class="system-diagram">
+    <h3>System Architecture</h3>
+    <div class="diagram-flow">
+      <div class="diagram-node">Customer</div>
+      <span class="diagram-arrow">→</span>
+      <div class="diagram-node central">Shared Database &amp; API</div>
+      <span class="diagram-arrow">←</span>
+      <div class="diagram-node">Staff Counter</div>
+    </div>
+    <div class="diagram-flow" style="margin-top:12px">
+      <div class="diagram-node">Admin Dashboard</div>
+      <span class="diagram-arrow">→</span>
+      <div class="diagram-node central">Shared Database &amp; API</div>
+    </div>
+    <p class="diagram-note">Currently simulated in JavaScript using localStorage.</p>
+  </div>
+</div>
+
+<!-- CUSTOMER APP -->
+<div id="customer-app" class="hidden">
+  <div class="phone-frame">
+    <div class="phone-header">
+      <h2>City Café Rewards</h2>
+      <p>City University Malaysia Café</p>
+    </div>
+    <div class="phone-content" id="customer-content"></div>
+    <nav class="bottom-nav" id="customer-nav">
+      <button class="nav-item active" data-tab="home"><span class="nav-icon">🏠</span>Home</button>
+      <button class="nav-item" data-tab="qr"><span class="nav-icon">📷</span>My QR</button>
+      <button class="nav-item" data-tab="rewards"><span class="nav-icon">🎁</span>Rewards</button>
+      <button class="nav-item" data-tab="history"><span class="nav-icon">📜</span>History</button>
+      <button class="nav-item" data-tab="profile"><span class="nav-icon">👤</span>Profile</button>
+    </nav>
+  </div>
+</div>
+
+<!-- STAFF APP -->
+<div id="staff-app" class="hidden">
+  <div class="staff-container">
+    <div class="staff-tabs" id="staff-tabs">
+      <button class="staff-tab active" data-tab="scan">Scan Member</button>
+      <button class="staff-tab" data-tab="pos">POS / New Sale</button>
+      <button class="staff-tab" data-tab="redeem">Redeem</button>
+      <button class="staff-tab" data-tab="history">Sales History</button>
+      <button class="staff-tab" data-tab="summary">Today Summary</button>
+    </div>
+    <div class="staff-content" id="staff-content"></div>
+  </div>
+</div>
+
+<!-- ADMIN APP -->
+<div id="admin-app" class="hidden">
+  <aside class="admin-sidebar">
+    <div class="sidebar-brand">
+      <h2>City Café Rewards</h2>
+      <p>Admin Dashboard</p>
+    </div>
+    <nav class="sidebar-nav" id="admin-nav">
+      <button class="sidebar-item active" data-tab="overview">Overview</button>
+      <button class="sidebar-item" data-tab="students">Members</button>
+      <button class="sidebar-item" data-tab="offers">Offers &amp; Promotions</button>
+      <button class="sidebar-item" data-tab="transactions">Transactions</button>
+      <button class="sidebar-item" data-tab="menu">Menu &amp; Rewards</button>
+      <button class="sidebar-item" data-tab="sop">SOP</button>
+      <button class="sidebar-item" data-tab="settings">Prototype Settings</button>
+    </nav>
+  </aside>
+  <main class="admin-main">
+    <button class="btn btn-sm btn-outline mobile-sidebar-toggle" id="mobile-admin-nav">☰ Menu</button>
+    <div id="admin-content"></div>
+  </main>
+</div>
+
+<div id="modal-root"></div>
+
+<script>
+/* ============================================================
+   CITY CAFÉ REWARDS — Shared Simulated Database (localStorage)
+   ============================================================ */
+
+const STORAGE_KEY = 'cityCafeRewards';
+const STAMP_GOAL = 10;
+
+const DEFAULT_MENU = [
+  { id: 'latte', name: 'Latte', price: 8, category: 'Coffee', active: true },
+  { id: 'americano', name: 'Americano', price: 6, category: 'Coffee', active: true },
+  { id: 'cappuccino', name: 'Cappuccino', price: 9, category: 'Coffee', active: true },
+  { id: 'mocha', name: 'Mocha', price: 10, category: 'Coffee', active: true },
+  { id: 'iced-coffee', name: 'Iced Coffee', price: 7, category: 'Iced Drinks', active: true },
+  { id: 'iced-latte', name: 'Iced Latte', price: 9, category: 'Iced Drinks', active: true },
+  { id: 'matcha', name: 'Matcha Latte', price: 10, category: 'Iced Drinks', active: true },
+  { id: 'chocolate-ice', name: 'Chocolate Ice', price: 8, category: 'Iced Drinks', active: true },
+  { id: 'sandwich', name: 'Sandwich', price: 12, category: 'Food', active: true },
+  { id: 'croissant', name: 'Croissant', price: 6, category: 'Food', active: true },
+  { id: 'muffin', name: 'Muffin', price: 5, category: 'Food', active: true },
+  { id: 'chicken-wrap', name: 'Chicken Wrap', price: 14, category: 'Food', active: true },
+  { id: 'extra-shot', name: 'Extra Shot', price: 2, category: 'Add-ons', active: true },
+  { id: 'oat-milk', name: 'Oat Milk', price: 3, category: 'Add-ons', active: true },
+  { id: 'whipped-cream', name: 'Whipped Cream', price: 2, category: 'Add-ons', active: true }
+];
+
+const MENU_CATEGORIES = ['All', 'Coffee', 'Iced Drinks', 'Food', 'Add-ons'];
+const PAYMENT_METHODS = ['Cash', 'Card', 'E-wallet', 'Student Wallet'];
+const CASHIER_NAME = 'Counter Staff';
+
+const DEFAULT_VOUCHERS = [
+  { id: 'v5', name: 'RM 5 Voucher', pointsRequired: 100 },
+  { id: 'v10', name: 'RM 10 Voucher', pointsRequired: 180 },
+  { id: 'pastry', name: 'Free Pastry', pointsRequired: 150 }
+];
+
+const DEFAULT_STUDENTS = [
+  { name: 'Ahmad Faiz', studentId: 'CU2024001', programme: 'Bachelor of IT', email: 'ahmad.faiz@student.city.edu.my', customerType: 'city_student' },
+  { name: 'Sarah Lim', studentId: 'CU2024002', programme: 'Diploma in Business', email: 'sarah.lim@student.city.edu.my', customerType: 'city_student' },
+  { name: 'Kumar Raj', studentId: 'CU2024003', programme: 'Bachelor of Computer Science', email: 'kumar.raj@student.city.edu.my', customerType: 'city_student' },
+  { name: 'Nur Aina', studentId: 'CU2024004', programme: 'Diploma in IT', email: 'nur.aina@student.city.edu.my', customerType: 'city_student' },
+  { name: 'Moimen Ali', studentId: 'CU2024005', programme: 'Master of IT', email: 'moimen.ali@student.city.edu.my', customerType: 'city_student' }
+];
+
+const DEFAULT_GENERAL = [
+  { name: 'Ali Rahman', phone: '60123456789', email: 'ali.rahman@email.com', memberCode: 'GC-M-001', customerType: 'general_customer' },
+  { name: 'Mei Wong', phone: '60198765432', email: 'mei.wong@email.com', memberCode: 'GC-M-002', customerType: 'general_customer' },
+  { name: 'Daniel Tan', phone: '60112233445', email: null, memberCode: 'GC-M-003', customerType: 'general_customer' },
+  { name: 'Siti Aminah', phone: '60187654321', email: 'siti.aminah@email.com', memberCode: 'GC-M-004', customerType: 'general_customer' },
+  { name: 'John Lee', phone: '60199887766', email: 'john.lee@email.com', memberCode: 'GC-M-005', customerType: 'general_customer' }
+];
+
+const DEFAULT_OFFERS = [
+  { offerId: 'student-drink-10', offerName: '10% Student Drink Discount', customerTypeEligibility: 'city_student', discountType: 'percentage', discountValue: 10, appliesToCategory: 'Coffee', isActive: true },
+  { offerId: 'student-combo', offerName: 'Student Combo: Coffee + Croissant RM 12', customerTypeEligibility: 'city_student', discountType: 'special_price', discountValue: 12, appliesToCategory: 'Food', isActive: true },
+  { offerId: 'double-points', offerName: 'Double Points Day (City Students)', customerTypeEligibility: 'city_student', discountType: 'double_points', discountValue: 2, isActive: true },
+  { offerId: 'student-voucher-bonus', offerName: 'Student-Only Bonus Voucher Eligibility', customerTypeEligibility: 'city_student', discountType: 'fixed_amount', discountValue: 5, isActive: true }
+];
+
+function createMember(base) {
+  const isStudent = base.customerType === 'city_student' || !!base.studentId;
+  const memberCode = base.memberCode || (isStudent ? 'CU-M-' + (base.studentId || '').replace('CU', '') : 'GC-M-' + Date.now().toString().slice(-6));
+  const scanVal = isStudent ? (base.studentId || memberCode) : memberCode;
+  return {
+    ...base,
+    customerType: base.customerType || (isStudent ? 'city_student' : 'general_customer'),
+    memberCode,
+    barcodeValue: base.barcodeValue || scanVal,
+    qrValue: base.qrValue || scanVal,
+    phone: base.phone || '',
+    isActive: base.isActive !== false,
+    points: base.points || 0,
+    totalPurchases: base.totalPurchases || 0,
+    currentStampProgress: base.currentStampProgress || 0,
+    freeDrinksAvailable: base.freeDrinksAvailable || 0,
+    membershipStatus: base.membershipStatus || 'Active Member',
+    transactionHistory: base.transactionHistory || []
+  };
+}
+
+function createStudent(base) { return createMember(base); }
+
+function migrateMenu(menu) {
+  const defaults = JSON.parse(JSON.stringify(DEFAULT_MENU));
+  const byId = {};
+  (menu || []).forEach(m => { byId[m.id] = m; });
+  defaults.forEach(d => {
+    if (byId[d.id]) {
+      if (!byId[d.id].category) byId[d.id].category = d.category;
+      if (byId[d.id].active === undefined) byId[d.id].active = true;
+    } else {
+      menu.push(JSON.parse(JSON.stringify(d)));
+    }
+  });
+  if (byId['iced'] && !byId['iced-coffee']) {
+    byId['iced'].id = 'iced-coffee';
+    byId['iced'].category = 'Iced Drinks';
+    byId['iced'].active = byId['iced'].active !== false;
+  }
+  menu.forEach(m => {
+    if (!m.category) m.category = 'Coffee';
+    if (m.active === undefined) m.active = true;
+  });
+  return menu;
+}
+
+function migrateMembers(students) {
+  const list = students || [];
+  const ids = new Set(list.map(s => s.studentId || s.memberCode));
+  DEFAULT_STUDENTS.forEach(d => {
+    if (!list.some(s => s.studentId === d.studentId)) list.push(createMember(d));
+  });
+  DEFAULT_GENERAL.forEach(d => {
+    if (!list.some(s => s.memberCode === d.memberCode)) list.push(createMember(d));
+  });
+  list.forEach(s => {
+    if (!s.customerType) s.customerType = s.studentId ? 'city_student' : 'general_customer';
+    if (!s.memberCode) s.memberCode = s.studentId ? 'CU-M-' + s.studentId.replace('CU', '') : 'GC-M-' + Date.now().toString().slice(-4);
+    if (!s.barcodeValue) s.barcodeValue = s.studentId || s.memberCode;
+    if (!s.qrValue) s.qrValue = s.barcodeValue;
+    if (s.isActive === undefined) s.isActive = true;
+  });
+  return list;
+}
+
+function getDefaultData() {
+  return {
+    students: migrateMembers(DEFAULT_STUDENTS.map(createMember).concat(DEFAULT_GENERAL.map(createMember))),
+    menu: JSON.parse(JSON.stringify(DEFAULT_MENU)),
+    vouchers: JSON.parse(JSON.stringify(DEFAULT_VOUCHERS)),
+    offers: JSON.parse(JSON.stringify(DEFAULT_OFFERS)),
+    transactions: [],
+    selectedCustomerId: null,
+    staffScannedId: null
+  };
+}
+
+function loadData() {
+  if (apiEnabled && dataCache) {
+    const ui = loadUiState();
+    return {
+      ...dataCache,
+      selectedCustomerId: ui.selectedCustomerId ?? null,
+      staffScannedId: ui.staffScannedId ?? null
+    };
+  }
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if (!raw) {
+    const data = getDefaultData();
+    saveData(data);
+    return data;
+  }
+  try {
+    const data = JSON.parse(raw);
+    if (!data.menu) data.menu = JSON.parse(JSON.stringify(DEFAULT_MENU));
+    else data.menu = migrateMenu(data.menu);
+    if (!data.vouchers) data.vouchers = JSON.parse(JSON.stringify(DEFAULT_VOUCHERS));
+    if (!data.offers) data.offers = JSON.parse(JSON.stringify(DEFAULT_OFFERS));
+    if (!data.transactions) data.transactions = [];
+    data.students = migrateMembers(data.students || []);
+    data.menu.forEach(m => {
+      if (m.isStudentOfferEligible === undefined) m.isStudentOfferEligible = ['Coffee', 'Iced Drinks'].includes(m.category);
+      if (m.description === undefined) m.description = '';
+    });
+    return data;
+  } catch {
+    const data = getDefaultData();
+    saveData(data);
+    return data;
+  }
+}
+
+function saveData(data) {
+  if (apiEnabled) {
+    saveUiState({
+      selectedCustomerId: data.selectedCustomerId ?? null,
+      staffScannedId: data.staffScannedId ?? null
+    });
+    return;
+  }
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+}
+
+function getStudent(id) {
+  const data = loadData();
+  const q = (id || '').trim();
+  const up = q.toUpperCase();
+  return data.students.find(s =>
+    s.studentId === q || s.studentId?.toUpperCase() === up ||
+    s.memberCode === q || s.memberCode?.toUpperCase() === up ||
+    s.barcodeValue?.toUpperCase() === up || s.qrValue?.toUpperCase() === up ||
+    s.phone === q
+  );
+}
+
+function updateStudent(studentIdOrCode, updater) {
+  const data = loadData();
+  const idx = data.students.findIndex(s =>
+    s.studentId === studentIdOrCode || s.memberCode === studentIdOrCode ||
+    s.studentId?.toUpperCase() === (studentIdOrCode || '').toUpperCase()
+  );
+  if (idx === -1) return null;
+  updater(data.students[idx]);
+  saveData(data);
+  return data.students[idx];
+}
+
+function addTransaction(tx) {
+  const data = loadData();
+  const createdAt = tx.createdAt || tx.date || new Date().toISOString();
+  const entry = {
+    id: Date.now() + Math.random().toString(36).slice(2, 6),
+    date: createdAt,
+    createdAt,
+    ...tx
+  };
+  if (!entry.type && entry.transactionType) {
+    if (entry.transactionType === 'Purchase') entry.type = 'Purchase';
+    else if (entry.transactionType === 'Reward') entry.type = 'Reward Redemption';
+    else if (entry.transactionType === 'Free Drink') entry.type = 'Free Drink Redemption';
+    else entry.type = entry.transactionType;
+  }
+  if (entry.points === undefined && entry.pointsEarned !== undefined) entry.points = entry.pointsEarned;
+  if (entry.amount === undefined && entry.total !== undefined) entry.amount = entry.total;
+  if (!entry.item && entry.items) entry.item = itemsSummary(entry.items);
+  data.transactions.unshift(entry);
+  const student = data.students.find(s => s.studentId === tx.studentId || s.memberCode === tx.studentId || s.memberCode === tx.memberCode);
+  if (student) student.transactionHistory.unshift({ ...entry });
+  saveData(data);
+  return entry;
+}
+
+function generateOrderId() {
+  return 'ORD-' + Date.now().toString().slice(-8);
+}
+
+function getTxDate(tx) { return tx.createdAt || tx.date; }
+function getTxType(tx) { return tx.transactionType || tx.type; }
+function isPurchaseTx(tx) {
+  const t = getTxType(tx);
+  return t === 'Purchase';
+}
+function isRewardTx(tx) {
+  const t = getTxType(tx);
+  return t === 'Reward' || t === 'Reward Redemption';
+}
+function isFreeDrinkTx(tx) {
+  const t = getTxType(tx);
+  return t === 'Free Drink' || t.includes('Free Drink');
+}
+function getTxTotal(tx) { return tx.total ?? tx.amount ?? 0; }
+function getTxPoints(tx) { return tx.pointsEarned ?? tx.points ?? 0; }
+function itemsSummary(items) {
+  if (!items || !items.length) return '';
+  return items.map(i => `${i.itemName || i.name} ×${i.quantity || i.qty}`).join(', ');
+}
+function getActiveMenu() {
+  return loadData().menu.filter(m => m.active !== false);
+}
+function isThisWeek(iso) {
+  const d = new Date(iso);
+  const now = new Date();
+  const start = new Date(now);
+  start.setDate(now.getDate() - now.getDay());
+  start.setHours(0, 0, 0, 0);
+  return d >= start;
+}
+function downloadCSV(filename, headers, rows) {
+  const escape = v => `"${String(v ?? '').replace(/"/g, '""')}"`;
+  const csv = [headers, ...rows].map(r => r.map(escape).join(',')).join('\r\n');
+  const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+function splitDateTime(iso) {
+  const d = new Date(iso);
+  return {
+    date: d.toLocaleDateString('en-MY', { year: 'numeric', month: '2-digit', day: '2-digit' }),
+    time: d.toLocaleTimeString('en-MY', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+  };
+}
+
+/* ============================================================
+   PRODUCTION API (Neon PostgreSQL via Node API)
+   ============================================================ */
+
+const API_URL = window.location.protocol.startsWith('http')
+  ? window.location.origin
+  : 'http://localhost:3001';
+const UI_STATE_KEY = 'cityCafeUiState';
+let apiEnabled = false;
+let dataCache = null;
+let apiSyncing = false;
+
+function nameFromEmail(email) {
+  const local = (email || '').split('@')[0];
+  return local.split(/[._]/).filter(Boolean).map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+}
+
+function mapStudentFromApi(s, history = []) {
+  const ct = s.customer_type || 'city_student';
+  return {
+    id: s.id,
+    studentId: s.student_id || s.studentId,
+    name: s.name || nameFromEmail(s.email),
+    memberCode: s.member_code || s.memberCode,
+    customerType: ct,
+    programme: s.programme,
+    email: s.email,
+    phone: s.phone,
+    barcodeValue: s.barcode_value,
+    qrValue: s.qr_value,
+    points: s.points,
+    totalPurchases: s.total_purchases,
+    currentStampProgress: s.current_stamp_progress,
+    freeDrinksAvailable: s.free_drinks_available,
+    membershipStatus: s.membership_status,
+    isActive: s.is_active !== false,
+    transactionHistory: history
+  };
+}
+
+function mapMenuFromApi(m) {
+  return {
+    id: m.slug || m.id || m.productId,
+    name: m.name,
+    price: Number(m.price),
+    category: m.category,
+    description: m.description || '',
+    imageData: m.imageData || m.image_data || m.imageUrl || null,
+    active: m.isActive !== false && m.is_active !== false,
+    isStudentOfferEligible: m.isStudentOfferEligible || m.is_student_offer_eligible,
+    isBestSeller: m.isBestSeller || m.is_best_seller
+  };
+}
+
+function mapOfferFromApi(o) {
+  return {
+    offerId: o.offerId || o.id || o.slug,
+    id: o.offerId || o.id || o.slug,
+    offerName: o.offerName || o.offer_name,
+    customerTypeEligibility: o.customerTypeEligibility || o.customer_type_eligibility,
+    discountType: o.discountType || o.discount_type,
+    discountValue: Number(o.discountValue ?? o.discount_value ?? 0),
+    appliesToCategory: o.appliesToCategory || o.applies_to_category,
+    appliesToProductIds: o.appliesToProductIds || o.applies_to_product_ids,
+    startDate: o.startDate || o.start_date,
+    endDate: o.endDate || o.end_date,
+    isActive: o.isActive !== false && o.is_active !== false
+  };
+}
+
+function mapHistoryToTx(h) {
+  const typeMap = { Purchase: 'Purchase', Reward: 'Reward Redemption', 'Free Drink': 'Free Drink Redemption', 'Free Drink Earned': 'Free Drink Earned' };
+  return {
+    id: h.order_number,
+    orderId: h.order_number,
+    type: typeMap[h.transaction_type] || h.transaction_type,
+    transactionType: h.transaction_type,
+    date: h.created_at,
+    createdAt: h.created_at,
+    item: h.items_summary || h.reward_name || '—',
+    amount: Number(h.total || 0),
+    total: Number(h.total || 0),
+    points: h.points_earned || (h.points_used ? -h.points_used : 0),
+    pointsEarned: h.points_earned,
+    paymentMethod: h.payment_method
+  };
+}
+
+function mapOrderToTx(o) {
+  const typeMap = { Purchase: 'Purchase', Reward: 'Reward Redemption', 'Free Drink': 'Free Drink Redemption', 'Free Drink Earned': 'Free Drink Earned' };
+  return {
+    id: o.id,
+    orderId: o.order_number,
+    transactionType: o.transaction_type,
+    type: typeMap[o.transaction_type] || o.transaction_type,
+    createdAt: o.created_at,
+    date: o.created_at,
+    studentId: o.student_code || o.member_code,
+    memberCode: o.member_code,
+    customerType: o.customer_type,
+    studentName: o.member_name || nameFromEmail(o.email || ''),
+    offerUsed: o.offer_used,
+    item: o.items_summary || o.reward_name || '—',
+    subtotal: Number(o.subtotal || 0),
+    discount: Number(o.discount || 0),
+    total: Number(o.total || 0),
+    amount: Number(o.total || 0),
+    paymentMethod: o.payment_method,
+    pointsEarned: o.points_earned,
+    points: o.points_earned || (o.points_used ? -o.points_used : 0),
+    pointsUsed: o.points_used,
+    rewardName: o.reward_name,
+    stampBefore: o.stamp_before,
+    stampAfter: o.stamp_after,
+    freeDrinkUnlocked: o.free_drink_unlocked,
+    cashierName: o.cashier_name,
+    staffAction: ['Purchase', 'Reward', 'Free Drink'].includes(o.transaction_type)
+  };
+}
+
+function loadUiState() {
+  try { return JSON.parse(localStorage.getItem(UI_STATE_KEY) || '{}'); }
+  catch { return {}; }
+}
+
+function saveUiState(state) {
+  localStorage.setItem(UI_STATE_KEY, JSON.stringify(state));
+}
+
+function getApiAuthHeaders() {
+  const session = typeof getAuthSession === 'function' ? getAuthSession() : null;
+  const headers = { 'Content-Type': 'application/json' };
+  if (session?.token) headers.Authorization = `Bearer ${session.token}`;
+  return headers;
+}
+
+function handleApiUnauthorized() {
+  if (typeof setAuthSession === 'function') setAuthSession(null);
+  if (typeof showLoginScreen === 'function') showLoginScreen();
+  toast('Session expired. Please log in again.', 'error');
+}
+
+async function apiFetch(path) {
+  const res = await fetch(`${API_URL}${path}`, { headers: getApiAuthHeaders() });
+  if (res.status === 401) { handleApiUnauthorized(); throw new Error('Authentication required'); }
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || `API error ${res.status}`);
+  }
+  return res.json();
+}
+
+async function apiPost(path, body) {
+  const res = await fetch(`${API_URL}${path}`, {
+    method: 'POST',
+    headers: getApiAuthHeaders(),
+    body: JSON.stringify(body)
+  });
+  if (res.status === 401) { handleApiUnauthorized(); throw new Error('Authentication required'); }
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || `API error ${res.status}`);
+  }
+  return res.json();
+}
+
+async function apiPut(path, body) {
+  const res = await fetch(`${API_URL}${path}`, {
+    method: 'PUT',
+    headers: getApiAuthHeaders(),
+    body: JSON.stringify(body)
+  });
+  if (res.status === 401) { handleApiUnauthorized(); throw new Error('Authentication required'); }
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || `API error ${res.status}`);
+  }
+  return res.json();
+}
+
+function updateApiBadge(state) {
+  const badge = document.getElementById('api-status-badge');
+  if (!badge) return;
+  badge.classList.remove('hidden', 'live', 'offline', 'syncing');
+  if (state === 'live') {
+    badge.textContent = '● Live · Neon DB';
+    badge.classList.add('live');
+  } else if (state === 'syncing') {
+    badge.textContent = '↻ Syncing…';
+    badge.classList.add('syncing');
+  } else {
+    badge.textContent = '○ Offline · localStorage';
+    badge.classList.add('offline');
+  }
+}
+
+async function syncFromApi() {
+  if (apiSyncing) return apiEnabled;
+  const session = typeof getAuthSession === 'function' ? getAuthSession() : null;
+  if (!session?.token) {
+    apiEnabled = false;
+    updateApiBadge('offline');
+    return false;
+  }
+  apiSyncing = true;
+  updateApiBadge('syncing');
+  try {
+    const role = session.role;
+    const menuRes = await apiFetch(role === 'customer' ? '/api/menu' : '/api/menu?all=true');
+    const offersRes = await apiFetch('/api/offers').catch(() => ({ data: DEFAULT_OFFERS }));
+
+    let members = [];
+    let transactions = [];
+
+    if (role === 'customer') {
+      const code = session.memberCode || session.username;
+      const memberRes = await apiFetch(`/api/members/${encodeURIComponent(code)}`);
+      const hist = await apiFetch(`/api/students/${encodeURIComponent(code)}/history`);
+      members = [mapStudentFromApi(memberRes.data, (hist.data || []).map(mapHistoryToTx))];
+    } else {
+      const [membersRes, txRes] = await Promise.all([
+        apiFetch('/api/members').catch(() => apiFetch('/api/students')),
+        apiFetch('/api/orders/transactions'),
+      ]);
+      members = await Promise.all(membersRes.data.map(async s => {
+        const code = s.student_id || s.studentId || s.member_code || s.memberCode;
+        let history = [];
+        if (code) {
+          try {
+            const hist = await apiFetch(`/api/students/${code}/history`);
+            history = (hist.data || []).map(mapHistoryToTx);
+          } catch { /* ignore */ }
+        }
+        return mapStudentFromApi(s, history);
+      }));
+      transactions = (txRes.data || []).map(mapOrderToTx);
+    }
+
+    dataCache = {
+      students: members,
+      menu: menuRes.data.map(mapMenuFromApi),
+      vouchers: JSON.parse(JSON.stringify(DEFAULT_VOUCHERS)),
+      offers: (offersRes.data || []).map(mapOfferFromApi),
+      transactions
+    };
+    apiEnabled = true;
+    updateApiBadge('live');
+    return true;
+  } catch (err) {
+    console.warn('API sync failed:', err);
+    apiEnabled = false;
+    updateApiBadge('offline');
+    return false;
+  } finally {
+    apiSyncing = false;
+  }
+}
+
+async function checkApiHealth() {
+  try {
+    const res = await fetch(`${API_URL}/health`);
+    const data = await res.json();
+    return res.ok && data.database === 'connected';
+  } catch {
+    return false;
+  }
+}
+
+
+function formatDate(iso) {
+  const d = new Date(iso);
+  return d.toLocaleDateString('en-MY', { day: '2-digit', month: 'short', year: 'numeric' }) +
+    ' ' + d.toLocaleTimeString('en-MY', { hour: '2-digit', minute: '2-digit' });
+}
+
+function formatRM(n) { return 'RM ' + Number(n).toFixed(2); }
+
+function isToday(iso) {
+  const d = new Date(iso);
+  const t = new Date();
+  return d.toDateString() === t.toDateString();
+}
+
+function toast(msg, type = 'info') {
+  const el = document.createElement('div');
+  el.className = 'toast ' + type;
+  el.textContent = msg;
+  document.getElementById('toast-container').appendChild(el);
+  setTimeout(() => el.remove(), 3500);
+}
+
+function showModal(title, bodyHtml, actionsHtml) {
+  const root = document.getElementById('modal-root');
+  root.innerHTML = `<div class="modal-overlay" id="modal-overlay">
+    <div class="modal"><h3>${title}</h3><div>${bodyHtml}</div>
+    <div class="modal-actions">${actionsHtml || '<button class="btn btn-primary btn-sm" onclick="closeModal()">Close</button>'}</div></div></div>`;
+  document.getElementById('modal-overlay').addEventListener('click', e => {
+    if (e.target.id === 'modal-overlay') closeModal();
+  });
+}
+
+function closeModal() {
+  document.getElementById('modal-root').innerHTML = '';
+}
+
+window.closeModal = closeModal;
+
+/* ============================================================
+   App State & Navigation
+   ============================================================ */
+
+let currentRole = null;
+let customerTab = 'home';
+let staffTab = 'scan';
+let adminTab = 'overview';
+let posCart = [];
+let posCategory = 'All';
+let posDiscount = 0;
+let posPaymentMethod = 'Cash';
+let posCashReceived = 0;
+let heldSale = null;
+let pendingRedeemMsg = null;
+
+function showView(role) {
+  currentRole = role;
+  document.getElementById('entry-screen').classList.toggle('hidden', role !== null);
+  document.getElementById('customer-app').classList.toggle('hidden', role !== 'customer');
+  document.getElementById('staff-app').classList.toggle('hidden', role !== 'staff');
+  document.getElementById('admin-app').classList.toggle('hidden', role !== 'admin');
+  document.getElementById('role-switcher').classList.toggle('hidden', role === null);
+  document.querySelectorAll('.role-tab').forEach(t => {
+    t.classList.toggle('active', t.dataset.role === role);
+  });
+  refreshAndRender(role);
+}
+
+async function refreshAndRender(role) {
+  if (role !== null && typeof getAuthSession === 'function' && getAuthSession()?.token) {
+    await syncFromApi();
+  }
+  if (role === 'customer') renderCustomer();
+  if (role === 'staff') renderStaff();
+  if (role === 'admin') renderAdmin();
+}
+
+document.querySelectorAll('[data-open]').forEach(btn => {
+  btn.addEventListener('click', () => showView(btn.dataset.open));
+});
+document.getElementById('btn-back-home').addEventListener('click', () => showView(null));
+document.querySelectorAll('.role-tab').forEach(btn => {
+  btn.addEventListener('click', () => showView(btn.dataset.role));
+});
+
+/* ============================================================
+   CUSTOMER APP
+   ============================================================ */
+
+document.getElementById('customer-nav').addEventListener('click', e => {
+  const btn = e.target.closest('.nav-item');
+  if (!btn) return;
+  customerTab = btn.dataset.tab;
+  document.querySelectorAll('#customer-nav .nav-item').forEach(n => n.classList.toggle('active', n === btn));
+  renderCustomer();
+});
+
+function renderCustomer() {
+  const data = loadData();
+  const content = document.getElementById('customer-content');
+  if (!data.selectedCustomerId) {
+    content.innerHTML = renderStudentSelector('customer');
+    return;
+  }
+  const student = getStudent(data.selectedCustomerId);
+  if (!student) {
+    data.selectedCustomerId = null;
+    saveData(data);
+    content.innerHTML = renderStudentSelector('customer');
+    return;
+  }
+  switch (customerTab) {
+    case 'home': content.innerHTML = renderCustomerHome(student); break;
+    case 'qr': content.innerHTML = renderCustomerQR(student); break;
+    case 'rewards': content.innerHTML = renderCustomerRewards(student); break;
+    case 'history': content.innerHTML = renderCustomerHistory(student); break;
+    case 'profile': content.innerHTML = renderCustomerProfile(student); break;
+  }
+}
+
+function renderStudentSelector(context) {
+  const data = loadData();
+  return `<div class="student-selector">
+    <h3 style="text-align:center;margin-bottom:16px;color:var(--black)">Select Demo Member</h3>
+    ${data.students.map(s => `
+      <button class="student-btn" onclick="selectStudent('${s.studentId || s.memberCode}','${context}')">
+        <strong>${s.name}</strong>
+        <span>${s.memberCode || s.studentId} · ${s.customerType === 'general_customer' ? 'General Customer' : (s.programme || 'City Student')}</span>
+      </button>`).join('')}
+  </div>`;
+}
+
+window.selectStudent = async function(id, context) {
+  const ui = loadUiState();
+  ui.selectedCustomerId = id;
+  saveUiState(ui);
+  if (apiEnabled) await syncFromApi();
+  if (context === 'customer') renderCustomer();
+};
+
+function renderCustomerHome(s) {
+  const recent = s.transactionHistory.slice(0, 3);
+  const pct = (s.currentStampProgress / STAMP_GOAL) * 100;
+  return `
+    <p style="font-size:1.1rem;font-weight:600;color:var(--black);margin-bottom:12px">Hi, ${s.name.split(' ')[0]} 👋</p>
+    <div class="membership-card">
+      <div class="card-label">City Café Rewards Member</div>
+      <div class="card-name">${s.name}</div>
+      <div class="card-id">${s.studentId} · ${s.membershipStatus}</div>
+    </div>
+    <div class="stat-grid">
+      <div class="stat-box"><div class="stat-value">${s.points}</div><div class="stat-label">Total Points</div></div>
+      <div class="stat-box"><div class="stat-value">${s.freeDrinksAvailable}</div><div class="stat-label">Free Drinks</div></div>
+    </div>
+    <div class="progress-section">
+      <div class="section-title">Stamp Progress — ${s.currentStampProgress} / ${STAMP_GOAL} purchases</div>
+      <div class="progress-bar-bg"><div class="progress-bar-fill" style="width:${pct}%"></div></div>
+      <p style="font-size:0.8rem;color:#888;margin-top:8px">Buy 10 times and get 1 free drink ☕</p>
+    </div>
+    <div class="section-title">Recent Activity</div>
+    ${recent.length ? recent.map(tx => renderTxItem(tx)).join('') :
+      '<div class="empty-state"><div class="empty-icon">📭</div><p>No transactions yet</p></div>'}
+  `;
+}
+
+function renderTxItem(tx) {
+  const pts = getTxPoints(tx);
+  const ptsStr = pts > 0 ? `+${pts}` : pts < 0 ? `${pts}` : '0';
+  const cls = pts >= 0 ? 'tx-positive' : 'tx-negative';
+  const label = getTxType(tx);
+  const detail = tx.item || itemsSummary(tx.items) || tx.rewardName || '—';
+  const amt = getTxTotal(tx);
+  return `<div class="tx-item">
+    <div class="tx-info"><div class="tx-type">${label}</div><div>${detail}</div>
+    <div style="font-size:0.75rem;color:#aaa">${formatDate(getTxDate(tx))}</div></div>
+    <div><div class="tx-amount">${amt ? formatRM(amt) : ''}</div>
+    <div class="${cls}" style="text-align:right;font-size:0.85rem">${pts !== 0 ? ptsStr + ' pts' : ''}</div></div>
+  </div>`;
+}
+
+function generateQRPattern(id) {
+  let hash = 0;
+  for (let i = 0; i < id.length; i++) hash = ((hash << 5) - hash) + id.charCodeAt(i);
+  let cells = '';
+  for (let i = 0; i < 64; i++) {
+    hash = (hash * 1103515245 + 12345) & 0x7fffffff;
+    cells += `<div class="qr-cell ${hash % 3 !== 0 ? 'filled' : ''}"></div>`;
+  }
+  return cells;
+}
+
+function renderCustomerQR(s) {
+  const code = s.qrValue || s.barcodeValue || s.memberCode || s.studentId;
+  const barcodeHtml = typeof renderBarcode === 'function' ? renderBarcode(code) : `<p>${code}</p>`;
+  return `
+    <div class="profile-card-mini"><strong>${s.name}</strong><br>
+      <span style="font-size:0.85rem;color:#888">${s.programme || memberTypeLabel ? (typeof memberTypeLabel === 'function' ? memberTypeLabel(s.customerType) : '') : ''}</span></div>
+    <div class="qr-container">
+      <p style="font-weight:600;margin-bottom:8px">My QR / Barcode</p>
+      <div class="qr-code">${generateQRPattern(code)}</div>
+      ${barcodeHtml}
+      <p style="font-weight:700;color:var(--black);font-size:1rem">Member Code: ${s.memberCode || code}</p>
+      ${s.studentId ? `<p style="font-size:0.9rem">Student ID: ${s.studentId}</p>` : ''}
+      <p style="font-size:0.85rem;color:#888;margin:12px 0">Show this QR or barcode to café staff before payment.</p>
+      <button class="btn btn-outline btn-sm" onclick="copyId('${code}')">Copy Code</button>
+      <p style="font-size:0.75rem;color:#aaa;margin-top:16px">Future version can integrate camera scanning using browser QR scanner library or hardware scanner.</p>
+    </div>`;
+}
+
+window.copyId = function(id) {
+  navigator.clipboard.writeText(id).then(() => toast('Code copied!', 'success'));
+};
+
+function renderCustomerRewards(s) {
+  const data = loadData();
+  return `
+    <div class="stat-box" style="margin-bottom:16px;text-align:center">
+      <div class="stat-value">${s.points}</div><div class="stat-label">Available Points</div>
+    </div>
+    <div class="section-title">Redeem Rewards</div>
+    ${data.vouchers.map(v => `
+      <div class="voucher-card">
+        <div class="voucher-info"><h4>${v.name}</h4><p>${v.pointsRequired} points required</p></div>
+        <div><div class="voucher-cost">${v.pointsRequired} pts</div>
+        <button class="btn btn-primary btn-sm" style="margin-top:8px" onclick="requestRedeem('${v.id}','${v.name}')"
+          ${s.points < v.pointsRequired ? 'disabled' : ''}>Request Redeem</button></div>
+      </div>`).join('')}
+    <div id="redeem-message-area">${pendingRedeemMsg ? `<div class="redeem-msg">${pendingRedeemMsg}</div>` : ''}</div>`;
+}
+
+window.requestRedeem = function(vId, vName) {
+  pendingRedeemMsg = `Please show this reward (${vName}) to the café counter staff to complete redemption.`;
+  renderCustomer();
+};
+
+function renderCustomerHistory(s) {
+  const txs = s.transactionHistory;
+  if (!txs.length) return '<div class="empty-state"><div class="empty-icon">📜</div><p>No history yet</p></div>';
+  return `<div class="section-title">Transaction History</div>` + txs.map(tx => renderTxItem(tx)).join('');
+}
+
+function renderCustomerProfile(s) {
+  const data = loadData();
+  const ct = s.customerType || 'city_student';
+  return `
+    <div class="profile-field"><label>Member Profile</label><span>${s.name}</span></div>
+    <div class="profile-field"><label>Customer Type</label><span>${ct === 'city_student' ? 'City University Student' : 'General Customer'}</span></div>
+    <div class="profile-field"><label>Member Code</label><span>${s.memberCode || '—'}</span></div>
+    ${s.studentId ? `<div class="profile-field"><label>Student ID</label><span>${s.studentId}</span></div>` : ''}
+    ${s.programme ? `<div class="profile-field"><label>Programme</label><span>${s.programme}</span></div>` : ''}
+    ${s.phone ? `<div class="profile-field"><label>Phone</label><span>${s.phone}</span></div>` : ''}
+    <div class="profile-field"><label>Email</label><span>${s.email || '—'}</span></div>
+    <div class="profile-field"><label>Membership Status</label><span>${s.membershipStatus}</span></div>
+    <div class="input-group" style="margin-top:20px">
+      <label>Switch Member Demo</label>
+      <select onchange="switchCustomer(this.value)">
+        ${data.students.map(st => `<option value="${st.studentId || st.memberCode}" ${(st.studentId === s.studentId || st.memberCode === s.memberCode) ? 'selected' : ''}>${st.name} (${st.memberCode || st.studentId})</option>`).join('')}
+      </select>
+    </div>`;
+}
+
+window.switchCustomer = async function(id) {
+  const ui = loadUiState();
+  ui.selectedCustomerId = id;
+  saveUiState(ui);
+  pendingRedeemMsg = null;
+  if (apiEnabled) await syncFromApi();
+  renderCustomer();
+};
+
+/* ============================================================
+   STAFF COUNTER APP
+   ============================================================ */
+
+document.getElementById('staff-tabs').addEventListener('click', e => {
+  const btn = e.target.closest('.staff-tab');
+  if (!btn) return;
+  staffTab = btn.dataset.tab;
+  document.querySelectorAll('#staff-tabs .staff-tab').forEach(t => t.classList.toggle('active', t === btn));
+  renderStaff();
+});
+
+function renderStaff() {
+  const content = document.getElementById('staff-content');
+  switch (staffTab) {
+    case 'scan': content.innerHTML = renderStaffScan(); break;
+    case 'pos': content.innerHTML = renderStaffPOS(); break;
+    case 'redeem': content.innerHTML = renderStaffRedeem(); break;
+    case 'history': content.innerHTML = renderStaffSalesHistory(); break;
+    case 'summary': content.innerHTML = renderStaffTodaySummary(); break;
+  }
+}
+
+function memberLookupCode(s) {
+  return s?.memberCode || s?.studentId || '';
+}
+
+function getScannedStudent() {
+  const ui = loadUiState();
+  const id = ui.staffScannedId ?? loadData().staffScannedId;
+  return id ? getStudent(id) : null;
+}
+
+function renderStudentInfoCard(s) {
+  const ct = s.customerType || (s.studentId ? 'city_student' : 'general_customer');
+  const badge = ct === 'city_student'
+    ? `<div class="pos-offers-panel"><strong>City University Student · Special Offers Active</strong></div>`
+    : `<div style="margin-bottom:8px">${typeof memberTypeBadge === 'function' ? memberTypeBadge(s) : ''}</div>`;
+  return `${badge}
+  <div class="student-info-card">
+    <h3>${s.name} ${typeof memberTypeBadge === 'function' ? memberTypeBadge(s) : ''}</h3>
+    ${s.studentId ? `<div class="info-row"><span>Student ID</span><strong>${s.studentId}</strong></div>` : ''}
+    ${s.programme ? `<div class="info-row"><span>Programme</span><strong>${s.programme}</strong></div>` : ''}
+    <div class="info-row"><span>Member Code</span><strong>${s.memberCode || '—'}</strong></div>
+    ${s.phone ? `<div class="info-row"><span>Phone</span><strong>${s.phone}</strong></div>` : ''}
+    <div class="info-row"><span>Email</span><strong>${s.email || '—'}</strong></div>
+    <div class="info-row"><span>Points</span><strong style="color:var(--pink)">${s.points}</strong></div>
+    <div class="info-row"><span>Stamp Progress</span><strong>${s.currentStampProgress} / ${STAMP_GOAL}</strong></div>
+    <div class="info-row"><span>Free Drinks</span><strong>${s.freeDrinksAvailable}</strong></div>
+  </div>`;
+}
+
+function renderStaffScan() {
+  const s = getScannedStudent();
+  const data = loadData();
+  const scanVal = data.staffScannedId || loadUiState().staffScannedId || '';
+  return `
+    <h3 style="margin-bottom:8px;color:var(--black)">Scan QR / Barcode / Enter Member Code</h3>
+    <p class="scan-hint">Ready to scan. Physical barcode scanner supported as keyboard input.</p>
+    <div class="scanner-box"><div class="scan-line"></div><div class="scanner-label">Ready for Scanner</div></div>
+    <div class="input-group">
+      <label>Scan QR / Barcode / Member Code / Phone</label>
+      <input type="text" id="staff-id-input" placeholder="CU2024001, GC-M-001, phone…" value="${scanVal}"
+        autofocus onkeydown="if(event.key==='Enter'){event.preventDefault();staffScanStudent()}">
+    </div>
+    <div class="quick-btns">
+      ${data.students.slice(0, 8).map(st => `<button class="quick-btn" onclick="quickScan('${st.studentId || st.memberCode}')">${st.name.split(' ')[0]}</button>`).join('')}
+    </div>
+    <button class="btn btn-primary" onclick="staffScanStudent()">Search Member</button>
+    ${s ? renderStudentInfoCard(s) : '<div class="empty-state" style="margin-top:20px"><p>Scan or enter a member code to begin</p></div>'}
+  `;
+}
+
+window.quickScan = function(id) {
+  document.getElementById('staff-id-input').value = id;
+  staffScanStudent();
+};
+
+window.staffScanStudent = async function() {
+  const input = document.getElementById('staff-id-input');
+  const id = (input ? input.value : '').trim().toUpperCase();
+  if (apiEnabled) {
+    try {
+      await apiFetch(`/api/students/${id}`);
+      saveUiState({ ...loadUiState(), staffScannedId: id });
+      toast('Student loaded from database', 'success');
+      await syncFromApi();
+      renderStaff();
+      return;
+    } catch {
+      toast('Student not found. Check the ID.', 'error');
+      return;
+    }
+  }
+  const student = getStudent(id);
+  if (!student) { toast('Student not found. Check the ID.', 'error'); return; }
+  const data = loadData();
+  data.staffScannedId = id;
+  saveData(data);
+  toast('Student loaded: ' + student.name, 'success');
+  renderStaff();
+};
+
+function renderPosStudentStrip(s) {
+  if (!s) return `<div class="pos-warning">⚠ Please scan member before creating a sale.</div>`;
+  const ct = s.customerType || 'city_student';
+  return `<div class="pos-student-strip">
+    <div><span>Member</span><strong>${s.name}</strong> ${typeof memberTypeBadge === 'function' ? memberTypeBadge(s) : ''}</div>
+    <div><span>Code</span><strong>${s.memberCode || s.studentId || '—'}</strong></div>
+    ${s.studentId ? `<div><span>Student ID</span><strong>${s.studentId}</strong></div>` : ''}
+    <div><span>Points</span><strong style="color:var(--pink)">${s.points}</strong></div>
+    <div><span>Stamps</span><strong>${s.currentStampProgress} / ${STAMP_GOAL}</strong></div>
+    <div><span>Free Drinks</span><strong>${s.freeDrinksAvailable}</strong></div>
+    ${ct === 'city_student' ? '<div style="grid-column:1/-1;color:var(--pink);font-size:0.85rem;font-weight:600">City University Student · Special Offers Active</div>' : ''}
+  </div>`;
+}
+
+function renderPosOffers(s) {
+  if (!s) return '';
+  const offers = typeof getEligibleOffers === 'function' ? getEligibleOffers(s) : (loadData().offers || []).filter(o => o.isActive);
+  if (!offers.length) return '';
+  return `<div class="pos-offers-panel"><strong>Applicable Offers</strong>
+    ${offers.map(o => {
+      const disabled = o.customerTypeEligibility === 'city_student' && s.customerType === 'general_customer';
+      const sel = (window.posSelectedOfferId === o.offerId || window.posSelectedOfferId === o.id) ? 'active' : '';
+      return `<button class="pos-offer-btn ${sel} ${disabled ? 'disabled' : ''}"
+        onclick="${disabled ? '' : `selectPosOffer('${o.offerId || o.id}')`}"
+        ${disabled ? 'disabled title="This offer is only for City University students."' : ''}>
+        ${o.offerName}${disabled ? ' (City University students only)' : ''}
+      </button>`;
+    }).join('')}
+  </div>`;
+}
+
+window.selectPosOffer = function(id) {
+  window.posSelectedOfferId = window.posSelectedOfferId === id ? null : id;
+  renderStaff();
+};
+
+function renderProductImage(m) {
+  if (m.imageData) return `<div class="pp-image"><img src="${m.imageData}" alt="${m.name}"></div>`;
+  const icons = { Coffee: '☕', 'Iced Drinks': '🧊', Food: '🥐', 'Add-ons': '➕' };
+  return `<div class="pp-image">${icons[m.category] || '🍽'}</div>`;
+}
+
+function renderStaffPOS() {
+  const s = getScannedStudent();
+  const menu = getActiveMenu().filter(m => posCategory === 'All' || m.category === posCategory);
+  const subtotal = posCart.reduce((sum, i) => sum + i.price * i.qty, 0);
+  const discount = Math.min(posDiscount || 0, subtotal);
+  const finalTotal = Math.max(0, subtotal - discount);
+  const pm = window._posPointsMultiplier || 1;
+  const pointsEarned = Math.floor(finalTotal * pm);
+  const change = posPaymentMethod === 'Cash' ? Math.max(0, (posCashReceived || 0) - finalTotal) : 0;
+
+  return `
+    <div class="pos-header-bar">
+      <div><strong>City Café POS</strong></div>
+      <div class="pos-badges">
+        <span class="pos-badge">Counter Mode</span>
+        <span class="pos-badge">Live POS Demo</span>
+        <span class="pos-badge muted">Shared Database: localStorage</span>
+      </div>
+    </div>
+    <div class="pos-layout">
+      <div class="pos-products-panel">
+        ${renderPosStudentStrip(s)}
+        ${renderPosOffers(s)}
+        <div class="pos-categories">
+          ${MENU_CATEGORIES.map(c => `
+            <button class="pos-cat-btn ${posCategory === c ? 'active' : ''}" onclick="setPosCategory('${c}')">${c}</button>`).join('')}
+        </div>
+        <div class="pos-product-grid">
+          ${menu.map(m => `
+            <div class="pos-product-card">
+              ${renderProductImage(m)}
+              <div class="pp-cat">${m.category}${m.isStudentOfferEligible ? ' <span class="student-offer-badge">Student Offer</span>' : ''}</div>
+              <div class="pp-name">${m.name}</div>
+              <div class="pp-price">${formatRM(m.price)}</div>
+              <button class="btn btn-primary btn-sm" onclick="addToPosCart('${m.id}')">+ Add</button>
+            </div>`).join('')}
+        </div>
+      </div>
+      <div class="pos-cart-panel">
+        <div class="pos-cart-header">🛒 Cart (${posCart.reduce((n, i) => n + i.qty, 0)} items)</div>
+        <div class="pos-cart-body">
+          ${posCart.length ? posCart.map((item, idx) => `
+            <div class="pos-cart-item">
+              <div>
+                <div class="pci-name">${item.name}</div>
+                <div class="pci-meta">${formatRM(item.price)} each</div>
+                <div class="pos-qty-row">
+                  <button class="pos-qty-btn" onclick="changePosQty(${idx},-1)">−</button>
+                  <span>${item.qty}</span>
+                  <button class="pos-qty-btn" onclick="changePosQty(${idx},1)">+</button>
+                  <button class="pos-remove-btn" onclick="removePosItem(${idx})">Remove</button>
+                </div>
+              </div>
+              <div class="pci-total">${formatRM(item.price * item.qty)}</div>
+            </div>`).join('') : '<div class="empty-state" style="padding:24px"><p>Cart is empty</p></div>'}
+        </div>
+        <div class="pos-cart-footer">
+          <div class="pos-summary-line"><span>Subtotal</span><span>${formatRM(subtotal)}</span></div>
+          <div class="input-group" style="margin:8px 0">
+            <label>Discount (RM)</label>
+            <input type="number" min="0" step="0.5" value="${posDiscount || ''}" placeholder="0"
+              onchange="posDiscount=parseFloat(this.value)||0;renderStaff()">
+          </div>
+          <div class="pos-summary-line total"><span>Total</span><span>${formatRM(finalTotal)}</span></div>
+          <div class="pos-summary-line earn"><span>Points to earn</span><span>+${pointsEarned}</span></div>
+          <div class="pos-summary-line"><span>Stamp</span><span>+1 per sale</span></div>
+          <div style="margin-top:12px;font-size:0.85rem;font-weight:600">Payment Method</div>
+          <div class="pos-payment-grid">
+            ${PAYMENT_METHODS.map(p => `
+              <button class="pos-pay-btn ${posPaymentMethod === p ? 'active' : ''}" onclick="setPosPayment('${p}')">${p}</button>`).join('')}
+          </div>
+          ${posPaymentMethod === 'Cash' ? `
+            <div class="input-group" style="margin-top:8px">
+              <label>Cash Received (RM)</label>
+              <input type="number" min="0" step="0.5" value="${posCashReceived || ''}" placeholder="0"
+                onchange="posCashReceived=parseFloat(this.value)||0;renderStaff()">
+            </div>
+            <div class="pos-summary-line"><span>Change</span><strong>${formatRM(change)}</strong></div>` : ''}
+          <button class="btn btn-primary pos-checkout-btn" onclick="posCheckout()"
+            ${!s || posCart.length === 0 || finalTotal <= 0 ? 'disabled' : ''}>
+            Confirm Payment &amp; Record Sale
+          </button>
+          <div class="pos-cart-actions">
+            <button class="btn btn-outline btn-sm" onclick="clearPosCart()">Clear Cart</button>
+            <button class="btn btn-secondary btn-sm" onclick="holdPosSale()">Hold Sale</button>
+            ${heldSale ? `<button class="btn btn-primary btn-sm" onclick="resumeHeldSale()">Resume Held Sale</button>` : ''}
+          </div>
+        </div>
+      </div>
+    </div>`;
+}
+
+window.setPosCategory = function(c) { posCategory = c; renderStaff(); };
+window.setPosPayment = function(p) { posPaymentMethod = p; renderStaff(); };
+window.addToPosCart = function(id) {
+  const item = loadData().menu.find(m => m.id === id);
+  if (!item || item.active === false) return;
+  const existing = posCart.find(c => c.id === id);
+  if (existing) existing.qty++;
+  else posCart.push({ id: item.id, name: item.name, category: item.category, price: item.price, qty: 1 });
+  renderStaff();
+};
+window.changePosQty = function(idx, delta) {
+  posCart[idx].qty += delta;
+  if (posCart[idx].qty <= 0) posCart.splice(idx, 1);
+  renderStaff();
+};
+window.removePosItem = function(idx) { posCart.splice(idx, 1); renderStaff(); };
+window.clearPosCart = function() {
+  posCart = []; posDiscount = 0; posCashReceived = 0;
+  toast('Cart cleared', 'success'); renderStaff();
+};
+window.holdPosSale = function() {
+  if (!posCart.length) { toast('Cart is empty', 'error'); return; }
+  heldSale = { cart: JSON.parse(JSON.stringify(posCart)), discount: posDiscount, payment: posPaymentMethod, cash: posCashReceived };
+  posCart = []; posDiscount = 0; posCashReceived = 0;
+  toast('Sale held for demo', 'success'); renderStaff();
+};
+window.resumeHeldSale = function() {
+  if (!heldSale) return;
+  posCart = heldSale.cart; posDiscount = heldSale.discount;
+  posPaymentMethod = heldSale.payment; posCashReceived = heldSale.cash;
+  heldSale = null;
+  toast('Held sale resumed', 'success'); renderStaff();
+};
+
+window.posCheckout = async function() {
+  const s = getScannedStudent();
+  if (!s) { toast('Please scan a member first', 'error'); return; }
+  if (!posCart.length) { toast('Cart is empty', 'error'); return; }
+  const subtotal = posCart.reduce((sum, i) => sum + i.price * i.qty, 0);
+  const discount = Math.min(posDiscount || 0, subtotal);
+  const total = Math.max(0, subtotal - discount);
+  const offerUsed = window._posOfferUsed || null;
+  const pointsMultiplier = window._posPointsMultiplier || 1;
+  if (total <= 0) { toast('Total must be greater than 0', 'error'); return; }
+  if (posPaymentMethod === 'Cash' && (posCashReceived || 0) < total) {
+    toast('Insufficient cash received', 'error'); return;
+  }
+
+  const items = posCart.map(i => ({
+    itemName: i.name, category: i.category, quantity: i.qty,
+    unitPrice: i.price, lineTotal: i.price * i.qty
+  }));
+
+  const lookupCode = s.memberCode || s.studentId;
+
+  if (apiEnabled) {
+    try {
+      const res = await apiPost('/api/orders/sales', {
+        studentCode: s.studentId, memberCode: lookupCode, items, discount,
+        paymentMethod: posPaymentMethod, cashReceived: posCashReceived || 0,
+        cashierName: CASHIER_NAME, offerUsed, customerType: s.customerType, pointsMultiplier
+      });
+      await syncFromApi();
+      const updated = getStudent(lookupCode) || s;
+      const receipt = res.data.receipt;
+      showReceiptModal({
+        orderId: receipt.orderNumber, items, subtotal, discount,
+        total: receipt.total, paymentMethod: posPaymentMethod,
+        cashReceived: posCashReceived || 0, changeAmount: receipt.changeAmount || 0,
+        pointsEarned: receipt.pointsEarned, stampAfter: receipt.stampAfter,
+        offerUsed, cashierName: CASHIER_NAME, createdAt: new Date().toISOString()
+      }, updated, receipt.freeDrinkUnlocked);
+      posCart = []; posDiscount = 0; posCashReceived = 0; window.posSelectedOfferId = null;
+      window._posOfferUsed = null; window._posPointsMultiplier = 1;
+      toast('Sale saved to Neon database', 'success');
+      renderStaff();
+    } catch (err) { toast(err.message || 'Sale failed', 'error'); }
+    return;
+  }
+
+  const stampBefore = s.currentStampProgress;
+  const pointsEarned = Math.floor(total * pointsMultiplier);
+  const changeAmount = posPaymentMethod === 'Cash' ? (posCashReceived || 0) - total : 0;
+  let freeDrinkUnlocked = false;
+  let stampAfter = stampBefore;
+
+  updateStudent(lookupCode, st => {
+    st.points += pointsEarned;
+    st.totalPurchases++;
+    st.currentStampProgress++;
+    stampAfter = st.currentStampProgress;
+    if (st.currentStampProgress >= STAMP_GOAL) {
+      st.freeDrinksAvailable++;
+      st.currentStampProgress = 0;
+      stampAfter = 0;
+      freeDrinkUnlocked = true;
+    }
+  });
+
+  const orderId = generateOrderId();
+  const createdAt = new Date().toISOString();
+
+  const saleTx = addTransaction({
+    orderId, transactionType: 'Purchase', createdAt,
+    studentId: s.studentId || s.memberCode, memberCode: s.memberCode,
+    customerType: s.customerType, studentName: s.name, programme: s.programme,
+    cashierName: CASHIER_NAME, items, subtotal, discount, total,
+    paymentMethod: posPaymentMethod, cashReceived: posCashReceived || 0, changeAmount,
+    pointsEarned, stampBefore, stampAfter, freeDrinkUnlocked, offerUsed,
+    note: '', staffAction: true
+  });
+
+  if (freeDrinkUnlocked) {
+    addTransaction({
+      transactionType: 'Free Drink Earned', type: 'Free Drink Earned',
+      createdAt, studentId: s.studentId, studentName: s.name,
+      rewardName: '10-purchase stamp reward', item: '10-purchase stamp reward',
+      amount: 0, points: 0, staffAction: false, cashierName: CASHIER_NAME
+    });
+  }
+
+  showReceiptModal(saleTx, s, freeDrinkUnlocked);
+  posCart = []; posDiscount = 0; posCashReceived = 0; window.posSelectedOfferId = null;
+  window._posOfferUsed = null; window._posPointsMultiplier = 1;
+  toast('Sale recorded successfully', 'success');
+  renderStaff();
+};
+
+function showReceiptModal(tx, student, freeDrinkUnlocked) {
+  const itemsHtml = (tx.items || []).map(i =>
+    `<div class="r-row"><span>${i.itemName} ×${i.quantity}</span><span>${formatRM(i.lineTotal)}</span></div>`
+  ).join('');
+  const receiptText = buildReceiptText(tx, student, freeDrinkUnlocked);
+  window._lastReceiptText = receiptText;
+  showModal('Sale Receipt', `
+    <div class="receipt-print-area" id="receipt-print-area">
+      <div class="r-title">City Café Rewards</div>
+      <div class="r-sub">City University Malaysia Café</div>
+      <div class="r-divider"></div>
+      <div class="r-row"><span>Order ID</span><span>${tx.orderId}</span></div>
+      <div class="r-row"><span>Date</span><span>${formatDate(getTxDate(tx))}</span></div>
+      <div class="r-row"><span>Cashier</span><span>${tx.cashierName || CASHIER_NAME}</span></div>
+      <div class="r-divider"></div>
+      <div class="r-row"><span>Member</span><span>${student.name}</span></div>
+      <div class="r-row"><span>Member Type</span><span>${student.customerType === 'general_customer' ? 'General Customer' : 'City University Student'}</span></div>
+      <div class="r-row"><span>Member Code</span><span>${student.memberCode || '—'}</span></div>
+      ${student.studentId ? `<div class="r-row"><span>Student ID</span><span>${student.studentId}</span></div>` : ''}
+      ${tx.offerUsed ? `<div class="r-row"><span>Offer Applied</span><span>${tx.offerUsed}</span></div>` : ''}
+      <div class="r-divider"></div>
+      ${itemsHtml}
+      <div class="r-divider"></div>
+      <div class="r-row"><span>Subtotal</span><span>${formatRM(tx.subtotal)}</span></div>
+      <div class="r-row"><span>Discount</span><span>${formatRM(tx.discount || 0)}</span></div>
+      <div class="r-row"><strong>Total Paid</strong><strong>${formatRM(tx.total)}</strong></div>
+      <div class="r-row"><span>Payment</span><span>${tx.paymentMethod}</span></div>
+      ${tx.paymentMethod === 'Cash' ? `<div class="r-row"><span>Change</span><span>${formatRM(tx.changeAmount || 0)}</span></div>` : ''}
+      <div class="r-divider"></div>
+      <div class="r-row"><span>Points Earned</span><strong style="color:var(--pink)">+${tx.pointsEarned}</strong></div>
+      <div class="r-row"><span>Stamp Progress</span><span>${tx.stampAfter} / ${STAMP_GOAL}</span></div>
+      ${freeDrinkUnlocked ? '<div style="text-align:center;color:var(--pink);font-weight:700;margin-top:8px">🎉 Free drink unlocked!</div>' : ''}
+    </div>`,
+    `<button class="btn btn-outline btn-sm" onclick="printReceipt()">Print Receipt</button>
+     <button class="btn btn-secondary btn-sm" onclick="downloadReceiptText()">Download Receipt as Text</button>
+     <button class="btn btn-primary btn-sm" onclick="closeModal()">Close</button>`);
+  document.querySelector('.modal').classList.add('receipt-modal');
+}
+
+function buildReceiptText(tx, student, freeDrinkUnlocked) {
+  const lines = [
+    'City Café Rewards', 'City University Malaysia Café', '---',
+    `Order ID: ${tx.orderId}`, `Date: ${formatDate(getTxDate(tx))}`,
+    `Cashier: ${tx.cashierName || CASHIER_NAME}`, '---',
+    `Student: ${student.name}`, `ID: ${student.studentId}`, '---'
+  ];
+  (tx.items || []).forEach(i => lines.push(`${i.itemName} x${i.quantity}  ${formatRM(i.lineTotal)}`));
+  lines.push('---', `Subtotal: ${formatRM(tx.subtotal)}`, `Discount: ${formatRM(tx.discount || 0)}`,
+    `Total: ${formatRM(tx.total)}`, `Payment: ${tx.paymentMethod}`,
+    `Points Earned: +${tx.pointsEarned}`, `Stamps: ${tx.stampAfter}/${STAMP_GOAL}`);
+  if (freeDrinkUnlocked) lines.push('*** Free drink unlocked! ***');
+  return lines.join('\n');
+}
+
+window.printReceipt = function() {
+  const area = document.getElementById('receipt-print-area');
+  if (!area) return;
+  const w = window.open('', '_blank');
+  w.document.write(`<html><head><title>Receipt</title></head><body>${area.innerHTML}</body></html>`);
+  w.document.close(); w.print();
+};
+window.downloadReceiptText = function() {
+  const blob = new Blob([window._lastReceiptText || ''], { type: 'text/plain' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'city-cafe-receipt.txt';
+  a.click();
+};
+
+window.goStaffTab = function(tab) {
+  staffTab = tab;
+  document.querySelectorAll('#staff-tabs .staff-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
+  renderStaff();
+};
+
+function renderStaffRedeem() {
+  const s = getScannedStudent();
+  if (!s) return `<div class="empty-state"><div class="empty-icon">👤</div><p>Please scan a member first</p>
+    <button class="btn btn-primary btn-sm" style="margin-top:12px" onclick="goStaffTab('scan')">Go to Scan</button></div>`;
+  const data = loadData();
+  return `
+    ${renderStudentInfoCard(s)}
+    <h4 style="margin:20px 0 12px;color:var(--black)">Redeem Rewards</h4>
+    ${data.vouchers.map(v => `
+      <div class="redeem-option">
+        <div class="redeem-info"><h4>${v.name}</h4><p>${v.pointsRequired} points</p></div>
+        <button class="btn btn-primary btn-sm" onclick="staffRedeemVoucher('${v.id}')"
+          ${s.points < v.pointsRequired ? 'disabled' : ''}>Redeem</button>
+      </div>`).join('')}
+    <div class="redeem-option">
+      <div class="redeem-info"><h4>Free Drink</h4><p>${s.freeDrinksAvailable} available</p></div>
+      <button class="btn btn-primary btn-sm" onclick="staffRedeemFreeDrink()"
+        ${s.freeDrinksAvailable <= 0 ? 'disabled' : ''}>Redeem</button>
+    </div>`;
+}
+
+window.staffRedeemVoucher = async function(vId) {
+  const s = getScannedStudent();
+  if (!s) return;
+  const data = loadData();
+  const v = data.vouchers.find(x => x.id === vId);
+  if (!v || s.points < v.pointsRequired) { toast('Insufficient points', 'error'); return; }
+
+  if (apiEnabled) {
+    try {
+      await apiPost('/api/orders/redeem', {
+        studentCode: memberLookupCode(s),
+        type: 'voucher',
+        voucherSlug: vId,
+        cashierName: CASHIER_NAME
+      });
+      await syncFromApi();
+      toast(v.name + ' redeemed — saved to database', 'success');
+      renderStaff();
+    } catch (err) {
+      toast(err.message || 'Redemption failed', 'error');
+    }
+    return;
+  }
+
+  updateStudent(memberLookupCode(s), st => { st.points -= v.pointsRequired; });
+  addTransaction({
+    transactionType: 'Reward', type: 'Reward Redemption',
+    studentId: memberLookupCode(s), memberCode: s.memberCode, customerType: s.customerType,
+    studentName: s.name, programme: s.programme,
+    rewardName: v.name, pointsUsed: v.pointsRequired, points: -v.pointsRequired,
+    item: v.name, amount: 0, cashierName: CASHIER_NAME, staffAction: true
+  });
+  toast(v.name + ' redeemed successfully', 'success');
+  renderStaff();
+};
+
+window.staffRedeemFreeDrink = async function() {
+  const s = getScannedStudent();
+  if (!s || s.freeDrinksAvailable <= 0) { toast('No free drinks available', 'error'); return; }
+
+  if (apiEnabled) {
+    try {
+      await apiPost('/api/orders/redeem', {
+        studentCode: memberLookupCode(s),
+        type: 'free_drink',
+        cashierName: CASHIER_NAME
+      });
+      await syncFromApi();
+      toast('Free drink redeemed — saved to database', 'success');
+      renderStaff();
+    } catch (err) {
+      toast(err.message || 'Redemption failed', 'error');
+    }
+    return;
+  }
+
+  updateStudent(memberLookupCode(s), st => { st.freeDrinksAvailable--; });
+  addTransaction({
+    transactionType: 'Free Drink', type: 'Free Drink Redemption',
+    studentId: memberLookupCode(s), memberCode: s.memberCode, customerType: s.customerType,
+    studentName: s.name, programme: s.programme,
+    rewardName: 'Free Drink', item: 'Free Drink', amount: 0, points: 0,
+    cashierName: CASHIER_NAME, staffAction: true
+  });
+  toast('Free drink redeemed', 'success');
+  renderStaff();
+};
+
+let salesHistoryFilter = 'all';
+let salesHistoryStudent = '';
+let salesHistoryPayment = '';
+
+function renderStaffSalesHistory() {
+  const data = loadData();
+  let sales = data.transactions.filter(isPurchaseTx);
+  if (salesHistoryFilter === 'today') sales = sales.filter(t => isToday(getTxDate(t)));
+  else if (salesHistoryFilter === 'week') sales = sales.filter(t => isThisWeek(getTxDate(t)));
+  if (salesHistoryStudent) sales = sales.filter(t => t.studentId === salesHistoryStudent);
+  if (salesHistoryPayment) sales = sales.filter(t => t.paymentMethod === salesHistoryPayment);
+
+  return `
+    <h3 style="margin-bottom:16px;color:var(--black)">Sales History</h3>
+    <div class="filter-tabs">
+      ${['all','today','week'].map(f => `
+        <button class="filter-tab ${salesHistoryFilter === f ? 'active' : ''}" onclick="setSalesHistoryFilter('${f}')">
+          ${f === 'all' ? 'All' : f === 'today' ? 'Today' : 'This Week'}
+        </button>`).join('')}
+    </div>
+    <div class="table-toolbar" style="margin-bottom:16px;background:var(--white);padding:12px;border-radius:var(--radius-sm)">
+      <select onchange="salesHistoryStudent=this.value;renderStaff()">
+        <option value="">All Students</option>
+        ${data.students.map(s => `<option value="${s.studentId}" ${salesHistoryStudent === s.studentId ? 'selected' : ''}>${s.name}</option>`).join('')}
+      </select>
+      <select onchange="salesHistoryPayment=this.value;renderStaff()">
+        <option value="">All Payment Methods</option>
+        ${PAYMENT_METHODS.map(p => `<option value="${p}" ${salesHistoryPayment === p ? 'selected' : ''}>${p}</option>`).join('')}
+      </select>
+    </div>
+    ${sales.length ? sales.map(tx => `
+      <div class="sales-history-card">
+        <div class="sh-top">
+          <span class="sh-order">${tx.orderId || tx.id}</span>
+          <span style="font-size:0.85rem;color:#888">${formatDate(getTxDate(tx))}</span>
+        </div>
+        <div><strong>${tx.studentName}</strong> · ${tx.studentId}</div>
+        <div style="font-size:0.85rem;color:#666;margin:6px 0">${tx.item || itemsSummary(tx.items)}</div>
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+          <span><strong style="color:var(--pink)">${formatRM(getTxTotal(tx))}</strong> · ${tx.paymentMethod || '—'} · +${getTxPoints(tx)} pts</span>
+          <button class="btn btn-sm btn-outline" onclick="viewSaleReceipt('${tx.id}')">View Receipt</button>
+        </div>
+      </div>`).join('') :
+      '<div class="empty-state"><div class="empty-icon">📋</div><p>No sales found</p></div>'}`;
+}
+
+window.setSalesHistoryFilter = function(f) { salesHistoryFilter = f; renderStaff(); };
+window.viewSaleReceipt = function(id) {
+  const tx = loadData().transactions.find(t => t.id === id);
+  if (!tx) return;
+  const s = getStudent(tx.studentId) || { name: tx.studentName, studentId: tx.studentId };
+  showReceiptModal(tx, s, tx.freeDrinkUnlocked);
+};
+
+function getTopItemToday(txs) {
+  const counts = {};
+  txs.filter(isPurchaseTx).filter(t => isToday(getTxDate(t))).forEach(t => {
+    (t.items || []).forEach(i => { counts[i.itemName] = (counts[i.itemName] || 0) + (i.quantity || 1); });
+    if (!t.items && t.item) {
+      t.item.split(',').forEach(p => {
+        const name = p.replace(/\s×\d+/g, '').trim();
+        if (name) counts[name] = (counts[name] || 0) + 1;
+      });
+    }
+  });
+  const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+  return sorted.length ? sorted[0][0] : '—';
+}
+
+function renderStaffTodaySummary() {
+  const data = loadData();
+  const todayTxs = data.transactions.filter(t => isToday(getTxDate(t)));
+  const purchases = todayTxs.filter(isPurchaseTx);
+  const revenue = purchases.reduce((s, t) => s + getTxTotal(t), 0);
+  const orders = purchases.length;
+  const aov = orders ? revenue / orders : 0;
+  const pointsIssued = purchases.reduce((s, t) => s + getTxPoints(t), 0);
+  const rewardsRedeemed = todayTxs.filter(isRewardTx).length;
+  const freeDrinksGiven = todayTxs.filter(t => isFreeDrinkTx(t) && getTxType(t) !== 'Free Drink Earned').length;
+  const topItem = getTopItemToday(data.transactions);
+
+  return `
+    <h3 style="margin-bottom:16px;color:var(--black)">Today Summary</h3>
+    <div class="staff-stats" style="grid-template-columns:repeat(auto-fill,minmax(140px,1fr))">
+      <div class="staff-stat"><div class="val">${formatRM(revenue)}</div><div class="lbl">Today Sales Revenue</div></div>
+      <div class="staff-stat"><div class="val">${orders}</div><div class="lbl">Today Orders</div></div>
+      <div class="staff-stat"><div class="val">${formatRM(aov)}</div><div class="lbl">Avg Order Value</div></div>
+      <div class="staff-stat"><div class="val">${pointsIssued}</div><div class="lbl">Points Issued Today</div></div>
+      <div class="staff-stat"><div class="val">${rewardsRedeemed}</div><div class="lbl">Rewards Redeemed</div></div>
+      <div class="staff-stat"><div class="val">${freeDrinksGiven}</div><div class="lbl">Free Drinks Given</div></div>
+      <div class="staff-stat"><div class="val" style="font-size:1rem">${topItem}</div><div class="lbl">Top Selling Item</div></div>
+    </div>
+    <h4 style="margin:24px 0 12px;color:var(--black)">Today's Activity</h4>
+    ${todayTxs.length ? todayTxs.map(tx => renderTxItem(tx)).join('') :
+      '<div class="empty-state"><div class="empty-icon">📋</div><p>No activity today</p></div>'}`;
+}
+
+/* ============================================================
+   ADMIN DASHBOARD
+   ============================================================ */
+
+document.getElementById('admin-nav').addEventListener('click', e => {
+  const btn = e.target.closest('.sidebar-item');
+  if (!btn) return;
+  adminTab = btn.dataset.tab;
+  document.querySelectorAll('#admin-nav .sidebar-item').forEach(n => n.classList.toggle('active', n === btn));
+  renderAdmin();
+});
+
+document.getElementById('mobile-admin-nav').addEventListener('click', () => {
+  const nav = document.getElementById('admin-nav');
+  nav.style.display = nav.style.display === 'block' ? '' : 'block';
+});
+
+function renderAdmin() {
+  const content = document.getElementById('admin-content');
+  switch (adminTab) {
+    case 'overview': content.innerHTML = renderAdminOverview(); break;
+    case 'students': content.innerHTML = renderAdminStudents(); break;
+    case 'offers': content.innerHTML = renderAdminOffers(); break;
+    case 'transactions': content.innerHTML = renderAdminTransactions(); break;
+    case 'menu': content.innerHTML = renderAdminMenu(); break;
+    case 'sop': content.innerHTML = renderAdminSOP(); break;
+    case 'settings': content.innerHTML = renderAdminSettings(); break;
+  }
+}
+
+function renderAdminOverview() {
+  const data = loadData();
+  const txs = data.transactions;
+  const purchases = txs.filter(isPurchaseTx);
+  const totalRevenue = purchases.reduce((s, t) => s + getTxTotal(t), 0);
+  const totalOrders = purchases.length;
+  const aov = totalOrders ? totalRevenue / totalOrders : 0;
+  const totalPoints = purchases.reduce((s, t) => s + getTxPoints(t), 0);
+  const totalRedemptions = txs.filter(isRewardTx).length;
+  const freeDrinksIssued = txs.filter(t => getTxType(t) === 'Free Drink Earned').length;
+  const activeStudents = data.students.filter(s => s.totalPurchases > 0).length;
+  const repeatCustomers = data.students.filter(s => s.totalPurchases > 1).length;
+
+  const productCounts = {};
+  purchases.forEach(t => {
+    if (t.items) t.items.forEach(i => { productCounts[i.itemName] = (productCounts[i.itemName] || 0) + (i.quantity || 1); });
+    else if (t.item) t.item.split(',').forEach(p => {
+      const name = p.replace(/\s×\d+/g, '').trim();
+      if (name && !name.startsWith('Custom')) productCounts[name] = (productCounts[name] || 0) + 1;
+    });
+  });
+  const topProducts = Object.entries(productCounts).sort((a, b) => b[1] - a[1]).slice(0, 6);
+  const maxProd = topProducts.length ? topProducts[0][1] : 1;
+
+  const categoryRevenue = {};
+  purchases.forEach(t => {
+    if (t.items) t.items.forEach(i => {
+      categoryRevenue[i.category || 'Other'] = (categoryRevenue[i.category || 'Other'] || 0) + (i.lineTotal || 0);
+    });
+  });
+  const catEntries = Object.entries(categoryRevenue);
+  const maxCatRev = catEntries.length ? Math.max(...catEntries.map(([, v]) => v)) : 1;
+
+  const payCounts = {};
+  purchases.forEach(t => { const p = t.paymentMethod || 'Unknown'; payCounts[p] = (payCounts[p] || 0) + 1; });
+  const payEntries = Object.entries(payCounts);
+  const payTotal = payEntries.reduce((s, [, c]) => s + c, 0) || 1;
+  const colors = ['#E91E63', '#0B0B0D', '#FF6090', '#333333', '#FCE4EC', '#888'];
+  let payGradient = 'conic-gradient(';
+  let acc = 0;
+  payEntries.forEach(([_, count], i) => {
+    const pct = (count / payTotal) * 100;
+    payGradient += `${colors[i % colors.length]} ${acc}% ${acc + pct}%`;
+    acc += pct;
+    if (i < payEntries.length - 1) payGradient += ', ';
+  });
+  payGradient += payEntries.length ? ')' : '#eee 0% 100%)';
+
+  const nearStamp = data.students.filter(s => s.currentStampProgress >= 7 && s.currentStampProgress <= 9).length;
+  const hasFreeDrink = data.students.filter(s => s.freeDrinksAvailable > 0).length;
+  const frequentBuyers = data.students.filter(s => s.totalPurchases > 3).length;
+
+  const cityStudents = data.students.filter(s => (s.customerType || 'city_student') === 'city_student').length;
+  const generalCustomers = data.students.filter(s => s.customerType === 'general_customer').length;
+  const activeMembers = data.students.filter(s => s.isActive !== false && s.totalPurchases > 0).length;
+  const studentRevenue = purchases.filter(t => t.customerType === 'city_student' || (t.studentId && t.studentId.startsWith('CU'))).reduce((s, t) => s + getTxTotal(t), 0);
+  const generalRevenue = purchases.filter(t => t.customerType === 'general_customer' || (t.memberCode && t.memberCode.startsWith('GC'))).reduce((s, t) => s + getTxTotal(t), 0);
+  const studentDiscount = purchases.reduce((s, t) => s + (t.discount || 0), 0);
+
+  return `
+    <div class="admin-header"><h1>Overview</h1><p>City Café Rewards sales &amp; loyalty analytics</p></div>
+    <div class="kpi-grid">
+      <div class="kpi-card"><div class="kpi-value">${data.students.length}</div><div class="kpi-label">Total Members</div></div>
+      <div class="kpi-card"><div class="kpi-value">${cityStudents}</div><div class="kpi-label">City Students</div></div>
+      <div class="kpi-card"><div class="kpi-value">${generalCustomers}</div><div class="kpi-label">General Customers</div></div>
+      <div class="kpi-card"><div class="kpi-value">${activeMembers}</div><div class="kpi-label">Active Members</div></div>
+      <div class="kpi-card"><div class="kpi-value">${formatRM(totalRevenue)}</div><div class="kpi-label">Total Revenue</div></div>
+      <div class="kpi-card"><div class="kpi-value">${totalOrders}</div><div class="kpi-label">Total Orders</div></div>
+      <div class="kpi-card"><div class="kpi-value">${formatRM(studentDiscount)}</div><div class="kpi-label">Student Discount Given</div></div>
+      <div class="kpi-card"><div class="kpi-value">${formatRM(studentRevenue)}</div><div class="kpi-label">Student Revenue</div></div>
+      <div class="kpi-card"><div class="kpi-value">${formatRM(generalRevenue)}</div><div class="kpi-label">General Customer Revenue</div></div>
+      <div class="kpi-card"><div class="kpi-value">${formatRM(aov)}</div><div class="kpi-label">Average Order Value</div></div>
+      <div class="kpi-card"><div class="kpi-value">${totalPoints}</div><div class="kpi-label">Total Points Issued</div></div>
+      <div class="kpi-card"><div class="kpi-value">${totalRedemptions}</div><div class="kpi-label">Rewards Redeemed</div></div>
+      <div class="kpi-card"><div class="kpi-value">${freeDrinksIssued}</div><div class="kpi-label">Free Drinks Issued</div></div>
+      <div class="kpi-card"><div class="kpi-value">${activeStudents}</div><div class="kpi-label">Active Students</div></div>
+      <div class="kpi-card"><div class="kpi-value">${repeatCustomers}</div><div class="kpi-label">Repeat Customers</div></div>
+    </div>
+    <div class="charts-grid">
+      <div class="chart-section">
+        <h3>Top Selling Products</h3>
+        ${topProducts.length ? `<div class="bar-chart">${topProducts.map(([name, count]) => `
+          <div class="bar-col"><div class="bar-value">${count}</div>
+          <div class="bar" style="height:${(count / maxProd) * 140}px"></div>
+          <div class="bar-label">${name}</div></div>`).join('')}</div>` :
+          '<div class="empty-state"><p>No sales data yet</p></div>'}
+      </div>
+      <div class="chart-section">
+        <h3>Revenue by Category</h3>
+        ${catEntries.length ? `<div class="bar-chart">${catEntries.map(([cat, rev]) => `
+          <div class="bar-col"><div class="bar-value">${formatRM(rev)}</div>
+          <div class="bar" style="height:${(rev / maxCatRev) * 140}px"></div>
+          <div class="bar-label">${cat}</div></div>`).join('')}</div>` :
+          '<div class="empty-state"><p>No category data yet</p></div>'}
+      </div>
+      <div class="chart-section">
+        <h3>Payment Method Distribution</h3>
+        <div class="pie-chart">
+          <div class="pie-visual" style="background:${payGradient}"></div>
+          <div class="pie-legend">${payEntries.map(([method, count], i) => `
+            <div class="legend-item"><div class="legend-dot" style="background:${colors[i % colors.length]}"></div>
+            ${method} (${count})</div>`).join('') || '<p>No data</p>'}
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="chart-section">
+      <h3>Loyalty Impact</h3>
+      <div class="kpi-grid" style="margin-bottom:0">
+        <div class="kpi-card"><div class="kpi-value">${nearStamp}</div><div class="kpi-label">Students with 7–9 stamps</div></div>
+        <div class="kpi-card"><div class="kpi-value">${hasFreeDrink}</div><div class="kpi-label">Students with free drink available</div></div>
+        <div class="kpi-card"><div class="kpi-value">${frequentBuyers}</div><div class="kpi-label">Students with 3+ purchases</div></div>
+      </div>
+    </div>`;
+}
+
+let studentSearch = '';
+let memberFilter = 'all';
+
+function renderAdminStudents() {
+  const data = loadData();
+  const filtered = data.students.filter(s => {
+    const q = studentSearch.toLowerCase();
+    const matchSearch = !q || s.name.toLowerCase().includes(q) ||
+      (s.studentId || '').toLowerCase().includes(q) ||
+      (s.memberCode || '').toLowerCase().includes(q) ||
+      (s.phone || '').includes(studentSearch);
+    const ct = s.customerType || 'city_student';
+    const matchFilter = memberFilter === 'all' ||
+      (memberFilter === 'city_student' && ct === 'city_student') ||
+      (memberFilter === 'general_customer' && ct === 'general_customer') ||
+      (memberFilter === 'active' && s.isActive !== false) ||
+      (memberFilter === 'inactive' && s.isActive === false);
+    return matchSearch && matchFilter;
+  });
+  return `
+    <div class="admin-header"><h1>Members</h1><p>Manage City University students and general customers</p></div>
+    <div class="data-table-wrap">
+      <div class="table-toolbar">
+        <input type="text" placeholder="Search name, phone, student ID, member code…" value="${studentSearch}"
+          oninput="studentSearch=this.value;renderAdmin()">
+        <select onchange="memberFilter=this.value;renderAdmin()">
+          <option value="all" ${memberFilter === 'all' ? 'selected' : ''}>All</option>
+          <option value="city_student" ${memberFilter === 'city_student' ? 'selected' : ''}>City Students</option>
+          <option value="general_customer" ${memberFilter === 'general_customer' ? 'selected' : ''}>General Customers</option>
+          <option value="active" ${memberFilter === 'active' ? 'selected' : ''}>Active</option>
+          <option value="inactive" ${memberFilter === 'inactive' ? 'selected' : ''}>Inactive</option>
+        </select>
+        <button class="btn btn-primary btn-sm" onclick="showRegisterModal('city_student')">+ Add City Student</button>
+        <button class="btn btn-outline btn-sm" onclick="showRegisterModal('general_customer')">+ Add General Customer</button>
+      </div>
+      <table class="data-table">
+        <thead><tr><th>Name</th><th>Type</th><th>Member Code</th><th>Student ID</th><th>Phone</th><th>Points</th><th>Status</th><th>Actions</th></tr></thead>
+        <tbody>${filtered.map(s => `<tr>
+          <td>${s.name}</td>
+          <td>${s.customerType === 'general_customer' ? 'General' : 'City Student'}</td>
+          <td>${s.memberCode || '—'}</td>
+          <td>${s.studentId || '—'}</td>
+          <td>${s.phone || '—'}</td>
+          <td><strong style="color:var(--pink)">${s.points}</strong></td>
+          <td><span class="badge badge-pink">${s.isActive === false ? 'Inactive' : s.membershipStatus}</span></td>
+          <td><button class="btn btn-sm btn-outline" onclick="viewStudentDetail('${s.studentId || s.memberCode}')">View</button>
+          <button class="btn btn-sm btn-secondary" onclick="toggleMemberActive('${s.studentId || s.memberCode}',${s.isActive !== false ? 'false' : 'true'})">${s.isActive === false ? 'Activate' : 'Deactivate'}</button></td>
+        </tr>`).join('')}</tbody>
+      </table>
+    </div>`;
+}
+
+window.toggleMemberActive = function(id, active) {
+  updateStudent(id, s => { s.isActive = active; s.membershipStatus = active ? 'Active Member' : 'Inactive'; });
+  toast(active ? 'Member activated' : 'Member deactivated', 'success');
+  renderAdmin();
+};
+
+function renderAdminOffers() {
+  const data = loadData();
+  const offers = data.offers || [];
+  return `
+    <div class="admin-header"><h1>Offers &amp; Promotions</h1><p>Manage student and member offers</p></div>
+    <button class="btn btn-primary btn-sm" style="margin-bottom:16px" onclick="showAddOfferModal()">+ Add Offer</button>
+    <table class="data-table">
+      <thead><tr><th>Offer Name</th><th>Eligibility</th><th>Type</th><th>Value</th><th>Category</th><th>Active</th></tr></thead>
+      <tbody>${offers.map(o => `<tr>
+        <td>${o.offerName}</td>
+        <td>${o.customerTypeEligibility}</td>
+        <td>${o.discountType}</td>
+        <td>${o.discountValue}</td>
+        <td>${o.appliesToCategory || '—'}</td>
+        <td><input type="checkbox" ${o.isActive ? 'checked' : ''} onchange="toggleOffer('${o.offerId || o.id}',this.checked)"></td>
+      </tr>`).join('')}</tbody>
+    </table>`;
+}
+
+window.toggleOffer = function(id, active) {
+  const data = loadData();
+  const o = data.offers.find(x => (x.offerId || x.id) === id);
+  if (o) { o.isActive = active; saveData(data); toast('Offer updated', 'success'); renderAdmin(); }
+};
+
+window.showAddOfferModal = function() {
+  showModal('Add Offer', `
+    <div class="input-group"><label>Offer Name</label><input id="off-name"></div>
+    <div class="input-group"><label>Eligibility</label>
+      <select id="off-elig"><option value="city_student">City University students</option>
+      <option value="general_customer">General customers</option><option value="all">All members</option></select></div>
+    <div class="input-group"><label>Discount Type</label>
+      <select id="off-type"><option value="percentage">Percentage</option><option value="fixed_amount">Fixed Amount</option>
+      <option value="special_price">Special Price</option><option value="double_points">Double Points</option></select></div>
+    <div class="input-group"><label>Value</label><input id="off-val" type="number"></div>
+    <div class="input-group"><label>Category (optional)</label><input id="off-cat"></div>`,
+    `<button class="btn btn-outline btn-sm" onclick="closeModal()">Cancel</button>
+     <button class="btn btn-primary btn-sm" onclick="saveNewOffer()">Save</button>`);
+};
+
+window.saveNewOffer = function() {
+  const data = loadData();
+  if (!data.offers) data.offers = [];
+  data.offers.push({
+    offerId: 'offer-' + Date.now(),
+    offerName: document.getElementById('off-name').value,
+    customerTypeEligibility: document.getElementById('off-elig').value,
+    discountType: document.getElementById('off-type').value,
+    discountValue: parseFloat(document.getElementById('off-val').value) || 0,
+    appliesToCategory: document.getElementById('off-cat').value || null,
+    isActive: true
+  });
+  saveData(data);
+  closeModal();
+  toast('Offer added', 'success');
+  renderAdmin();
+};
+
+window.showAddStudentModal = function() {
+  showModal('Add Demo Student', `
+    <div class="input-group"><label>Name</label><input id="new-name" type="text"></div>
+    <div class="input-group"><label>Student ID</label><input id="new-id" type="text"></div>
+    <div class="input-group"><label>Programme</label><input id="new-prog" type="text"></div>
+    <div class="input-group"><label>Email</label><input id="new-email" type="email"></div>`,
+    `<button class="btn btn-secondary btn-sm" onclick="closeModal()">Cancel</button>
+     <button class="btn btn-primary btn-sm" onclick="addStudent()">Add</button>`);
+};
+
+window.addStudent = function() {
+  const name = document.getElementById('new-name').value.trim();
+  const id = document.getElementById('new-id').value.trim().toUpperCase();
+  const prog = document.getElementById('new-prog').value.trim();
+  const email = document.getElementById('new-email').value.trim();
+  if (!name || !id) { toast('Name and ID required', 'error'); return; }
+  const data = loadData();
+  if (data.students.find(s => s.studentId === id)) { toast('ID already exists', 'error'); return; }
+  data.students.push(createStudent({ name, studentId: id, programme: prog || 'N/A', email: email || id + '@student.city.edu.my' }));
+  saveData(data);
+  closeModal();
+  toast('Student added', 'success');
+  renderAdmin();
+};
+
+window.viewStudentDetail = function(id) {
+  const s = getStudent(id);
+  if (!s) return;
+  const history = s.transactionHistory.slice(0, 10).map(tx => renderTxItem(tx)).join('') ||
+    '<p style="color:#999">No history</p>';
+  showModal(s.name, `
+    <div class="profile-field"><label>Student ID</label><span>${s.studentId}</span></div>
+    <div class="profile-field"><label>Programme</label><span>${s.programme}</span></div>
+    <div class="profile-field"><label>Points</label><span>${s.points}</span></div>
+    <div class="profile-field"><label>Purchases</label><span>${s.totalPurchases}</span></div>
+    <h4 style="margin:16px 0 8px">Recent History</h4>${history}
+    <div style="margin-top:16px"><button class="btn btn-sm btn-outline" onclick="resetStudent('${id}')">Reset Student Data</button></div>`);
+};
+
+window.editStudentPoints = function(id) {
+  const s = getStudent(id);
+  showModal('Edit Points — ' + s.name, `
+    <div class="input-group"><label>Points</label><input id="edit-points" type="number" value="${s.points}"></div>`,
+    `<button class="btn btn-secondary btn-sm" onclick="closeModal()">Cancel</button>
+     <button class="btn btn-primary btn-sm" onclick="saveEditPoints('${id}')">Save</button>`);
+};
+
+window.saveEditPoints = function(id) {
+  const pts = parseInt(document.getElementById('edit-points').value) || 0;
+  updateStudent(id, s => { s.points = pts; });
+  closeModal();
+  toast('Points updated', 'success');
+  renderAdmin();
+};
+
+window.resetStudent = function(id) {
+  updateStudent(id, s => {
+    s.points = 0; s.totalPurchases = 0; s.currentStampProgress = 0;
+    s.freeDrinksAvailable = 0; s.transactionHistory = [];
+  });
+  const data = loadData();
+  data.transactions = data.transactions.filter(t => t.studentId !== id);
+  saveData(data);
+  closeModal();
+  toast('Student reset', 'success');
+  renderAdmin();
+};
+
+let txFilterStudent = '', txFilterType = '', txFilterDate = '';
+
+function renderAdminTransactions() {
+  const data = loadData();
+  let txs = [...data.transactions];
+  if (txFilterStudent) txs = txs.filter(t => t.studentId === txFilterStudent);
+  if (txFilterType) txs = txs.filter(t => getTxType(t) === txFilterType || t.type === txFilterType);
+  if (txFilterDate) txs = txs.filter(t => getTxDate(t).startsWith(txFilterDate));
+  const types = [...new Set(data.transactions.map(t => getTxType(t)))];
+
+  return `
+    <div class="admin-header"><h1>Transactions</h1><p>Full POS sales &amp; loyalty transaction records</p></div>
+    <div class="data-table-wrap">
+      <div class="table-toolbar">
+        <select onchange="txFilterStudent=this.value;renderAdmin()">
+          <option value="">All Students</option>
+          ${data.students.map(s => `<option value="${s.studentId}" ${txFilterStudent === s.studentId ? 'selected' : ''}>${s.name}</option>`).join('')}
+        </select>
+        <select onchange="txFilterType=this.value;renderAdmin()">
+          <option value="">All Types</option>
+          ${types.map(t => `<option value="${t}" ${txFilterType === t ? 'selected' : ''}>${t}</option>`).join('')}
+        </select>
+        <input type="date" value="${txFilterDate}" onchange="txFilterDate=this.value;renderAdmin()">
+        <button class="btn btn-primary btn-sm" onclick="exportSalesCSV()">Export Sales CSV</button>
+      </div>
+      <div style="overflow-x:auto">
+      <table class="data-table">
+        <thead><tr>
+          <th>Order ID</th><th>Date/Time</th><th>Student</th><th>Items</th>
+          <th>Subtotal</th><th>Discount</th><th>Total</th><th>Payment</th><th>Points</th><th>Type</th>
+        </tr></thead>
+        <tbody>${txs.length ? txs.map(t => `<tr>
+          <td>${t.orderId || '—'}</td>
+          <td>${formatDate(getTxDate(t))}</td>
+          <td>${t.studentName || t.studentId}</td>
+          <td>${t.item || itemsSummary(t.items) || '—'}</td>
+          <td>${t.subtotal != null ? formatRM(t.subtotal) : '—'}</td>
+          <td>${t.discount ? formatRM(t.discount) : '—'}</td>
+          <td>${getTxTotal(t) ? formatRM(getTxTotal(t)) : '—'}</td>
+          <td>${t.paymentMethod || '—'}</td>
+          <td style="color:${getTxPoints(t) >= 0 ? 'var(--pink)' : '#f44336'}">${getTxPoints(t) || 0}</td>
+          <td>${getTxType(t)}</td></tr>`).join('') :
+          '<tr><td colspan="10" style="text-align:center;padding:40px;color:#999">No transactions found</td></tr>'}
+        </tbody>
+      </table></div>
+    </div>`;
+}
+
+window.exportSalesCSV = exportSalesCSV;
+window.exportStudentsCSV = exportStudentsCSV;
+window.exportRedemptionsCSV = exportRedemptionsCSV;
+window.exportDailySummaryCSV = exportDailySummaryCSV;
+window.exportMenuCSV = exportMenuCSV;
+window.exportOffersCSV = exportOffersCSV;
+window.exportBackupJSON = exportBackupJSON;
+window.importBackupJSON = importBackupJSON;
+
+function exportSalesCSV() {
+  const data = loadData();
+  const headers = ['Order ID','Date','Time','Member Code','Customer Type','Student ID','Customer Name','Items','Subtotal','Discount','Total','Offer Used','Payment Method','Cashier','Points Earned','Free Drink Unlocked','Transaction Type'];
+  const rows = data.transactions.filter(isPurchaseTx).map(t => {
+    const dt = splitDateTime(getTxDate(t));
+    const s = getStudent(t.studentId || t.memberCode);
+    return [t.orderId || t.id, dt.date, dt.time, t.memberCode || s?.memberCode || '', t.customerType || s?.customerType || '',
+      t.studentId || s?.studentId || '', t.studentName, t.item || itemsSummary(t.items), t.subtotal ?? getTxTotal(t), t.discount || 0, getTxTotal(t),
+      t.offerUsed || '', t.paymentMethod || '', t.cashierName || CASHIER_NAME, getTxPoints(t),
+      t.freeDrinkUnlocked ? 'Yes' : 'No', getTxType(t)];
+  });
+  downloadCSV('city-cafe-sales-transactions.csv', headers, rows);
+  toast('Sales CSV exported', 'success');
+}
+
+function exportStudentsCSV() {
+  const data = loadData();
+  const headers = ['Member Code','Customer Type','Student ID','Name','Programme','Phone','Email','Points','Total Purchases','Stamp Progress','Free Drinks Available','Membership Status','Active'];
+  const rows = data.students.map(s => [s.memberCode, s.customerType || 'city_student', s.studentId || '', s.name, s.programme || '', s.phone || '', s.email || '', s.points, s.totalPurchases, s.currentStampProgress, s.freeDrinksAvailable, s.membershipStatus, s.isActive !== false ? 'Yes' : 'No']);
+  downloadCSV('city-cafe-members.csv', headers, rows);
+  toast('Members CSV exported', 'success');
+}
+
+function exportMenuCSV() {
+  const data = loadData();
+  const headers = ['Product ID','Name','Category','Price','Active','Student Offer Eligible','Best Seller','Description'];
+  const rows = data.menu.map(m => [m.id, m.name, m.category, m.price, m.active !== false ? 'Yes' : 'No', m.isStudentOfferEligible ? 'Yes' : 'No', m.isBestSeller ? 'Yes' : 'No', m.description || '']);
+  downloadCSV('city-cafe-menu.csv', headers, rows);
+  toast('Menu CSV exported', 'success');
+}
+
+function exportOffersCSV() {
+  const data = loadData();
+  const headers = ['Offer ID','Offer Name','Eligibility','Discount Type','Discount Value','Category','Active','Start Date','End Date'];
+  const rows = (data.offers || []).map(o => [o.offerId || o.id, o.offerName, o.customerTypeEligibility, o.discountType, o.discountValue, o.appliesToCategory || '', o.isActive ? 'Yes' : 'No', o.startDate || '', o.endDate || '']);
+  downloadCSV('city-cafe-offers.csv', headers, rows);
+  toast('Offers CSV exported', 'success');
+}
+
+function exportRedemptionsCSV() {
+  const data = loadData();
+  const headers = ['Date','Time','Student ID','Student Name','Reward Name','Points Used','Type','Cashier'];
+  const rows = data.transactions.filter(t => isRewardTx(t) || (isFreeDrinkTx(t) && getTxType(t) !== 'Free Drink Earned')).map(t => {
+    const dt = splitDateTime(getTxDate(t));
+    return [dt.date, dt.time, t.studentId, t.studentName, t.rewardName || t.item || '',
+      (t.pointsUsed ?? Math.abs(getTxPoints(t))) || 0, getTxType(t), t.cashierName || CASHIER_NAME];
+  });
+  downloadCSV('city-cafe-redemptions.csv', headers, rows);
+  toast('Redemptions CSV exported', 'success');
+}
+
+function exportDailySummaryCSV() {
+  const data = loadData();
+  const byDate = {};
+  data.transactions.filter(isPurchaseTx).forEach(t => {
+    const date = splitDateTime(getTxDate(t)).date;
+    if (!byDate[date]) byDate[date] = { revenue: 0, orders: 0, points: 0, redemptions: 0, freeDrinks: 0, items: {} };
+    byDate[date].revenue += getTxTotal(t);
+    byDate[date].orders++;
+    byDate[date].points += getTxPoints(t);
+    (t.items || []).forEach(i => { byDate[date].items[i.itemName] = (byDate[date].items[i.itemName] || 0) + (i.quantity || 1); });
+  });
+  data.transactions.filter(t => isRewardTx(t)).forEach(t => {
+    const date = splitDateTime(getTxDate(t)).date;
+    if (byDate[date]) byDate[date].redemptions++;
+  });
+  data.transactions.filter(t => isFreeDrinkTx(t) && getTxType(t) !== 'Free Drink Earned').forEach(t => {
+    const date = splitDateTime(getTxDate(t)).date;
+    if (byDate[date]) byDate[date].freeDrinks++;
+  });
+  const headers = ['Date','Total Revenue','Total Orders','Average Order Value','Points Issued','Rewards Redeemed','Free Drinks Given','Top Selling Item'];
+  const rows = Object.entries(byDate).map(([date, d]) => {
+    const top = Object.entries(d.items).sort((a, b) => b[1] - a[1])[0];
+    return [date, d.revenue.toFixed(2), d.orders, d.orders ? (d.revenue / d.orders).toFixed(2) : 0,
+      d.points, d.redemptions, d.freeDrinks, top ? top[0] : '—'];
+  });
+  downloadCSV('city-cafe-daily-summary.csv', headers, rows);
+  toast('Daily summary CSV exported', 'success');
+}
+
+function exportBackupJSON() {
+  const data = loadData();
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'city-cafe-backup.json';
+  a.click();
+  toast('Backup JSON exported', 'success');
+}
+
+function importBackupJSON() {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.json,application/json';
+  input.onchange = e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      try {
+        const data = JSON.parse(ev.target.result);
+        if (!data.students || !data.transactions) throw new Error('Invalid backup');
+        if (!confirm('Import backup? This will replace current demo data.')) return;
+        data.menu = migrateMenu(data.menu || []);
+        data.students = migrateMembers(data.students || []);
+        if (!data.offers) data.offers = JSON.parse(JSON.stringify(DEFAULT_OFFERS));
+        saveData(data);
+        toast('Backup restored successfully', 'success');
+        if (currentRole) showView(currentRole);
+      } catch {
+        toast('Invalid backup file', 'error');
+      }
+    };
+    reader.readAsText(file);
+  };
+  input.click();
+}
+
+window.exportCSV = exportSalesCSV;
+
+function renderAdminMenu() {
+  const data = loadData();
+  return `
+    <div class="admin-header"><h1>Menu &amp; Rewards</h1><p>Manage POS products, categories, and voucher requirements</p></div>
+    <div class="settings-card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <h3>Menu Items</h3>
+        <button class="btn btn-primary btn-sm" onclick="showAddMenuModal()">+ Add Item</button>
+      </div>
+      <div class="menu-admin-row" style="font-weight:700;color:var(--black);border-bottom:2px solid #eee">
+        <span>Name</span><span>Price (RM)</span><span>Category</span><span>Active</span><span></span>
+      </div>
+      ${data.menu.map(m => `
+        <div class="menu-admin-row ${m.active === false ? 'inactive' : ''}">
+          <span>${m.imageData ? `<img class="menu-thumb" src="${m.imageData}">` : '🍽'} ${m.name}
+            <button class="btn btn-sm btn-outline" style="margin-left:8px" onclick="editMenuItem('${m.id}')">Edit</button></span>
+          <span><input type="number" min="0" step="0.5" value="${m.price}" style="width:70px;padding:6px;border:2px solid #eee;border-radius:6px"
+            onchange="updateMenuPrice('${m.id}',this.value)"></span>
+          <span><select onchange="updateMenuCategory('${m.id}',this.value)" style="padding:6px;border:2px solid #eee;border-radius:6px;font-size:0.8rem">
+            ${MENU_CATEGORIES.filter(c => c !== 'All').map(c => `<option value="${c}" ${m.category === c ? 'selected' : ''}>${c}</option>`).join('')}
+          </select></span>
+          <span><input type="checkbox" ${m.active !== false ? 'checked' : ''} onchange="toggleMenuActive('${m.id}',this.checked)"></span>
+          <span></span>
+        </div>`).join('')}
+      <p style="font-size:0.8rem;color:#888;margin-top:12px">Only active items appear in the POS product grid.</p>
+    </div>
+    <div class="settings-card">
+      <h3>Voucher Rewards</h3>
+      ${data.vouchers.map(v => `
+        <div class="edit-row"><span>${v.name}</span>
+        <span><input type="number" min="1" value="${v.pointsRequired}"
+          onchange="updateVoucherPoints('${v.id}',this.value)"> points</span></div>`).join('')}
+    </div>`;
+}
+
+window.showAddMenuModal = function() {
+  showModal('Add Menu Item', `
+    <div class="input-group"><label>Name</label><input id="menu-name" type="text"></div>
+    <div class="input-group"><label>Price (RM)</label><input id="menu-price" type="number" min="0" step="0.5"></div>
+    <div class="input-group"><label>Category</label>
+      <select id="menu-cat">${MENU_CATEGORIES.filter(c => c !== 'All').map(c => `<option>${c}</option>`).join('')}</select>
+    </div>`,
+    `<button class="btn btn-secondary btn-sm" onclick="closeModal()">Cancel</button>
+     <button class="btn btn-primary btn-sm" onclick="addMenuItem()">Add</button>`);
+};
+
+window.editMenuItem = function(id) {
+  const m = loadData().menu.find(x => x.id === id);
+  if (!m) return;
+  showModal('Edit Product — ' + m.name, `
+    <div class="input-group"><label>Name</label><input id="em-name" value="${m.name}"></div>
+    <div class="input-group"><label>Description</label><input id="em-desc" value="${m.description || ''}"></div>
+    <div class="input-group"><label>Price</label><input id="em-price" type="number" value="${m.price}"></div>
+    <div class="input-group"><label>Category</label>
+      <select id="em-cat">${MENU_CATEGORIES.filter(c => c !== 'All').map(c => `<option ${m.category === c ? 'selected' : ''}>${c}</option>`).join('')}</select></div>
+    <div class="input-group"><label>Product Image</label><input id="em-image" type="file" accept="image/*" onchange="previewMenuImage(this)"></div>
+    <div id="em-preview">${m.imageData ? `<img class="menu-thumb" src="${m.imageData}" style="width:120px;height:120px">` : ''}</div>
+    <label><input type="checkbox" id="em-student-offer" ${m.isStudentOfferEligible ? 'checked' : ''}> Student offer eligible</label><br>
+    <label><input type="checkbox" id="em-best" ${m.isBestSeller ? 'checked' : ''}> Best seller</label>`,
+    `<button class="btn btn-outline btn-sm" onclick="closeModal()">Cancel</button>
+     <button class="btn btn-primary btn-sm" onclick="saveMenuItem('${id}')">Save</button>`);
+  window._menuImageData = m.imageData || null;
+};
+
+window.previewMenuImage = function(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    window._menuImageData = e.target.result;
+    document.getElementById('em-preview').innerHTML = `<img src="${e.target.result}" style="width:120px;height:120px;object-fit:cover;border-radius:8px">`;
+  };
+  reader.readAsDataURL(file);
+};
+
+window.saveMenuItem = async function(id) {
+  const data = loadData();
+  const item = data.menu.find(m => m.id === id);
+  if (!item) return;
+  item.name = document.getElementById('em-name').value;
+  item.description = document.getElementById('em-desc').value;
+  item.price = parseFloat(document.getElementById('em-price').value) || 0;
+  item.category = document.getElementById('em-cat').value;
+  item.imageData = window._menuImageData || item.imageData;
+  item.isStudentOfferEligible = document.getElementById('em-student-offer').checked;
+  item.isBestSeller = document.getElementById('em-best').checked;
+  saveData(data);
+  if (apiEnabled && item.id && item.id.length > 20) {
+    try {
+      await apiPut(`/api/menu/${item.id}`, {
+        name: item.name, price: item.price, category: item.category,
+        description: item.description, imageData: item.imageData,
+        isStudentOfferEligible: item.isStudentOfferEligible, isBestSeller: item.isBestSeller
+      });
+    } catch { /* offline */ }
+  }
+  closeModal();
+  toast('Product updated', 'success');
+  renderAdmin();
+};
+
+window.addMenuItem = function() {
+  const name = document.getElementById('menu-name').value.trim();
+  const price = parseFloat(document.getElementById('menu-price').value) || 0;
+  const category = document.getElementById('menu-cat').value;
+  if (!name) { toast('Name required', 'error'); return; }
+  const data = loadData();
+  data.menu.push({ id: 'item-' + Date.now(), name, price, category, active: true });
+  saveData(data);
+  closeModal();
+  toast('Menu item added', 'success');
+  renderAdmin();
+};
+
+window.updateMenuCategory = function(id, cat) {
+  const data = loadData();
+  const item = data.menu.find(m => m.id === id);
+  if (item) { item.category = cat; saveData(data); toast('Category updated', 'success'); }
+};
+
+window.toggleMenuActive = function(id, active) {
+  const data = loadData();
+  const item = data.menu.find(m => m.id === id);
+  if (item) { item.active = active; saveData(data); toast(active ? 'Item activated' : 'Item deactivated', 'success'); renderAdmin(); }
+};
+
+window.updateMenuPrice = function(id, price) {
+  const data = loadData();
+  const item = data.menu.find(m => m.id === id);
+  if (item) { item.price = parseFloat(price) || 0; saveData(data); toast('Price updated', 'success'); }
+};
+
+window.updateVoucherPoints = function(id, pts) {
+  const data = loadData();
+  const v = data.vouchers.find(x => x.id === id);
+  if (v) { v.pointsRequired = parseInt(pts) || 0; saveData(data); toast('Voucher updated', 'success'); }
+};
+
+function renderAdminSOP() {
+  const steps = [
+    'Student shows QR code or student ID at café counter.',
+    'Staff scans or enters student ID.',
+    'System verifies student information from the student database.',
+    'Staff records purchase after payment.',
+    'System calculates points based on purchase amount.',
+    'System adds one stamp for each purchase.',
+    'Every 10 purchases unlocks one free drink.',
+    'Staff can redeem points or free drink when requested.',
+    'All actions are saved in transaction history.',
+    'Admin reviews analytics and manages loyalty rules.'
+  ];
+  return `
+    <div class="admin-header"><h1>Standard Operating Procedure</h1><p>City Café Rewards loyalty workflow</p></div>
+    <ul class="sop-list">${steps.map((s, i) => `
+      <li><div class="sop-num">${i + 1}</div><div>${s}</div></li>`).join('')}
+    </ul>`;
+}
+
+function renderAdminSettings() {
+  return `
+    <div class="admin-header"><h1>Prototype Settings</h1><p>Demo data management &amp; export center</p></div>
+    <div class="settings-card">
+      <h3>Data Management</h3>
+      <p>Reset or reload demo data for presentations.</p>
+      <button class="btn btn-primary btn-sm" style="margin-right:8px" onclick="resetAllData()">Reset All Demo Data</button>
+      <button class="btn btn-outline btn-sm" style="margin-right:8px" onclick="clearTransactions()">Clear Transaction History</button>
+      <button class="btn btn-secondary btn-sm" onclick="loadSampleTransactions()">Load Sample Transactions</button>
+    </div>
+    <div class="settings-card">
+      <h3>Export Center</h3>
+      <p>Download CSV files compatible with Microsoft Excel. All exports include UTF-8 BOM for proper character display.</p>
+      <div class="export-grid">
+        <div class="export-btn-card" onclick="exportSalesCSV()">
+          <h4>📊 Sales Transactions</h4><p>city-cafe-sales-transactions.csv</p>
+        </div>
+        <div class="export-btn-card" onclick="exportStudentsCSV()">
+          <h4>👥 Members</h4><p>city-cafe-members.csv</p>
+        </div>
+        <div class="export-btn-card" onclick="exportMenuCSV()">
+          <h4>🍽 Menu</h4><p>city-cafe-menu.csv</p>
+        </div>
+        <div class="export-btn-card" onclick="exportOffersCSV()">
+          <h4>🏷 Offers</h4><p>city-cafe-offers.csv</p>
+        </div>
+        <div class="export-btn-card" onclick="exportRedemptionsCSV()">
+          <h4>🎁 Redemptions</h4><p>city-cafe-redemptions.csv</p>
+        </div>
+        <div class="export-btn-card" onclick="exportDailySummaryCSV()">
+          <h4>📅 Daily Summary</h4><p>city-cafe-daily-summary.csv</p>
+        </div>
+        <div class="export-btn-card" onclick="exportBackupJSON()">
+          <h4>💾 Full Backup JSON</h4><p>city-cafe-backup.json</p>
+        </div>
+        <div class="export-btn-card" onclick="importBackupJSON()">
+          <h4>📂 Import Backup JSON</h4><p>Restore prototype data from file</p>
+        </div>
+      </div>
+    </div>
+    <div class="settings-card">
+      <h3>Authentication</h3>
+      <p>Secure login enabled: <strong>bcrypt password hashing</strong> + <strong>JWT sessions</strong>.</p>
+      <p style="font-size:0.85rem;color:#666">Demo accounts: admin/admin123 · staff/staff123 · CU2024001/demo123 · general001/demo123</p>
+      <p style="font-size:0.85rem;color:#666">Set <code>JWT_SECRET</code> in production/api/.env before deployment.</p>
+    </div>
+    <div class="settings-card">
+      <h3>About This Prototype</h3>
+      <p>This prototype uses localStorage to simulate a real shared database.</p>
+    </div>
+    <div class="settings-card">
+      <h3>Future Development</h3>
+      <ul class="future-list">
+        <li>Connect to real student database</li>
+        <li>Connect to POS system</li>
+        <li>Add staff login</li>
+        <li>Add admin authentication</li>
+        <li>Add QR scanner camera support</li>
+        <li>Add reporting dashboard</li>
+        <li>Add API and backend database</li>
+      </ul>
+    </div>`;
+}
+
+window.resetAllData = function() {
+  if (!confirm('Reset all demo data? This cannot be undone.')) return;
+  localStorage.removeItem(STORAGE_KEY);
+  posCart = []; posDiscount = 0; posCashReceived = 0; heldSale = null; pendingRedeemMsg = null;
+  loadData();
+  toast('All data reset', 'success');
+  if (currentRole) showView(currentRole);
+};
+
+window.clearTransactions = function() {
+  const data = loadData();
+  data.transactions = [];
+  data.students.forEach(s => { s.transactionHistory = []; });
+  saveData(data);
+  toast('Transactions cleared', 'success');
+  renderAdmin();
+};
+
+window.loadSampleTransactions = function() {
+  const data = loadData();
+  const samples = [
+    { sid: 'CU2024001', items: [{ itemName: 'Latte', category: 'Coffee', quantity: 1, unitPrice: 8, lineTotal: 8 }], total: 8 },
+    { sid: 'CU2024002', items: [{ itemName: 'Cappuccino', category: 'Coffee', quantity: 1, unitPrice: 9, lineTotal: 9 }, { itemName: 'Croissant', category: 'Food', quantity: 1, unitPrice: 6, lineTotal: 6 }], total: 15 },
+    { sid: 'CU2024003', items: [{ itemName: 'Matcha Latte', category: 'Iced Drinks', quantity: 1, unitPrice: 10, lineTotal: 10 }], total: 10 },
+    { sid: 'CU2024004', items: [{ itemName: 'Americano', category: 'Coffee', quantity: 1, unitPrice: 6, lineTotal: 6 }], total: 6 }
+  ];
+  samples.forEach((s, i) => {
+    const st = data.students.find(x => x.studentId === s.sid);
+    if (!st) return;
+    const pts = Math.floor(s.total);
+    st.points += pts;
+    st.totalPurchases++;
+    st.currentStampProgress++;
+    const entry = {
+      id: 'sample-' + i, orderId: 'ORD-SAMPLE' + i,
+      createdAt: new Date(Date.now() - i * 3600000).toISOString(),
+      transactionType: 'Purchase', type: 'Purchase',
+      studentId: s.sid, studentName: st.name, programme: st.programme,
+      cashierName: CASHIER_NAME, items: s.items, subtotal: s.total, discount: 0, total: s.total,
+      paymentMethod: 'Cash', pointsEarned: pts, points: pts, amount: s.total,
+      item: itemsSummary(s.items), staffAction: true,
+      stampBefore: st.currentStampProgress - 1, stampAfter: st.currentStampProgress, freeDrinkUnlocked: false
+    };
+    data.transactions.unshift(entry);
+    st.transactionHistory.unshift({ ...entry });
+  });
+  saveData(data);
+  toast('Sample transactions loaded', 'success');
+  renderAdmin();
+};
+
+/* Init */
+async function initApp() {
+  updateApiBadge('syncing');
+  if (window.location.protocol === 'file:') {
+    updateApiBadge('offline');
+    toast('Open http://localhost:3001 in browser (not the file directly) for live database', 'error');
+    loadData();
+    return;
+  }
+  const online = await checkApiHealth();
+  if (!online) {
+    loadData();
+    updateApiBadge('offline');
+    return;
+  }
+  const session = typeof getAuthSession === 'function' ? getAuthSession() : null;
+  if (session?.token) {
+    const synced = await syncFromApi();
+    if (synced) toast('Connected to Neon production database', 'success');
+  } else {
+    apiEnabled = false;
+    updateApiBadge('live');
+    const badge = document.getElementById('api-status-badge');
+    if (badge) badge.textContent = '● Live · Login required';
+  }
+}
+initApp();
+</script>
+<script src="js/city-cafe-v2.js"></script>
+
+</body>
+</html>
