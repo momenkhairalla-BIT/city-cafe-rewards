@@ -1,9 +1,10 @@
 /**
- * City Café Rewards V2 — members, auth, offers, QR/barcode, menu images
+ * City Café Rewards V2 — auth, registration, members, offers, QR/barcode
  * Loaded after main index.html script; patches window globals.
  */
 (function () {
   const AUTH_KEY = 'cityCafeAuthSession';
+  let registerType = null;
 
   window.getAuthSession = function () {
     try { return JSON.parse(localStorage.getItem(AUTH_KEY) || 'null'); } catch { return null; }
@@ -23,17 +24,199 @@
   };
 
   window.findMemberLocal = function (code) {
-    const q = (code || '').trim();
-    if (!q) return null;
-    const up = q.toUpperCase();
-    const data = loadData();
-    return data.students.find(s =>
-      (s.studentId && s.studentId.toUpperCase() === up) ||
-      (s.memberCode && s.memberCode.toUpperCase() === up) ||
-      (s.barcodeValue && s.barcodeValue.toUpperCase() === up) ||
-      (s.qrValue && s.qrValue.toUpperCase() === up) ||
-      (s.phone && s.phone === q)
+    return typeof findMemberByQuery === 'function' ? findMemberByQuery(code) : null;
+  };
+
+  function friendlyAuthError(err) {
+    const msg = (err?.message || String(err || '')).toLowerCase();
+    if (msg.includes('database unavailable') || msg.includes('503')) {
+      return 'Service temporarily unavailable. Please try again in a moment.';
+    }
+    if (msg.includes('already registered') || msg.includes('already exists')) {
+      return err.message || 'This account is already registered.';
+    }
+    if (msg.includes('password') && msg.includes('match')) {
+      return 'Passwords do not match.';
+    }
+    if (msg.includes('invalid credentials') || msg.includes('401')) {
+      return 'Invalid username or password. Please try again.';
+    }
+    if (msg.includes('required')) {
+      return err.message || 'Please fill in all required fields.';
+    }
+    return 'Unable to complete request. Please check your details and try again.';
+  }
+
+  function setLoginError(message) {
+    const el = document.getElementById('login-error');
+    if (!el) return;
+    if (message) {
+      el.textContent = message;
+      el.classList.add('visible');
+    } else {
+      el.textContent = '';
+      el.classList.remove('visible');
+    }
+  }
+
+  function setRegisterError(message) {
+    const el = document.getElementById('register-error');
+    if (!el) return;
+    if (message) {
+      el.textContent = message;
+      el.classList.add('visible');
+    } else {
+      el.textContent = '';
+      el.classList.remove('visible');
+    }
+  }
+
+  window.showLoginScreen = function () {
+    document.getElementById('login-screen')?.classList.remove('hidden');
+    document.getElementById('register-screen')?.classList.add('hidden');
+    document.getElementById('entry-screen')?.classList.add('hidden');
+    document.getElementById('role-switcher')?.classList.add('hidden');
+    ['customer-app', 'staff-app', 'admin-app'].forEach(id => document.getElementById(id)?.classList.add('hidden'));
+    setLoginError('');
+  };
+
+  window.hideLoginScreen = function () {
+    document.getElementById('login-screen')?.classList.add('hidden');
+    document.getElementById('register-screen')?.classList.add('hidden');
+  };
+
+  window.showRegisterTypeScreen = function () {
+    document.getElementById('login-screen')?.classList.add('hidden');
+    document.getElementById('register-screen')?.classList.remove('hidden');
+    document.getElementById('register-type-step')?.classList.remove('hidden');
+    document.getElementById('register-form-step')?.classList.add('hidden');
+    setRegisterError('');
+    registerType = null;
+  };
+
+  window.showRegisterForm = function (type) {
+    registerType = type;
+    const isStudent = type === 'city_student';
+    document.getElementById('register-type-step')?.classList.add('hidden');
+    document.getElementById('register-form-step')?.classList.remove('hidden');
+    document.getElementById('register-form-title').textContent = isStudent
+      ? 'Register City University Student'
+      : 'Register General Customer';
+    document.getElementById('register-form-subtitle').textContent = isStudent
+      ? 'Student ID and email are required. Special offers apply after registration.'
+      : 'Phone number is required. Earn points and stamps on every purchase.';
+    setRegisterError('');
+    document.getElementById('register-form-fields').innerHTML = isStudent ? `
+      <div class="input-group"><label>Student ID *</label>
+        <input id="reg-student-id" placeholder="CU2024999" autocomplete="off"></div>
+      <div class="input-group"><label>Full Name *</label>
+        <input id="reg-name" placeholder="Full name"></div>
+      <div class="input-group"><label>Programme *</label>
+        <input id="reg-programme" placeholder="Bachelor of IT"></div>
+      <div class="input-group"><label>Email *</label>
+        <input id="reg-email" type="email" placeholder="name@student.city.edu.my"></div>
+      <div class="input-group"><label>Phone (optional)</label>
+        <input id="reg-phone" placeholder="60123456789"></div>
+      <div class="input-group"><label>Password *</label>
+        <input id="reg-password" type="password" placeholder="Min 6 characters" autocomplete="new-password"></div>
+      <div class="input-group"><label>Confirm Password *</label>
+        <input id="reg-confirm" type="password" placeholder="Re-enter password" autocomplete="new-password"></div>
+    ` : `
+      <div class="input-group"><label>Full Name *</label>
+        <input id="reg-name" placeholder="Full name"></div>
+      <div class="input-group"><label>Phone Number *</label>
+        <input id="reg-phone" placeholder="60123456789"></div>
+      <div class="input-group"><label>Email (optional)</label>
+        <input id="reg-email" type="email" placeholder="email@example.com"></div>
+      <div class="input-group"><label>Password *</label>
+        <input id="reg-password" type="password" placeholder="Min 6 characters" autocomplete="new-password"></div>
+      <div class="input-group"><label>Confirm Password *</label>
+        <input id="reg-confirm" type="password" placeholder="Re-enter password" autocomplete="new-password"></div>
+    `;
+    const btn = document.getElementById('register-submit-btn');
+    if (btn) btn.onclick = () => submitRegister(type);
+  };
+
+  /** Public registration — type selection screen */
+  window.showRegisterModal = function (type) {
+    const session = typeof getAuthSession === 'function' ? getAuthSession() : null;
+    if (session?.role === 'admin') {
+      showAdminAddMemberModal(type);
+      return;
+    }
+    showRegisterTypeScreen();
+    if (type) showRegisterForm(type);
+  };
+
+  window.showAdminAddMemberModal = function (type) {
+    const isStudent = type === 'city_student';
+    showModal(isStudent ? 'Add City University Student' : 'Add General Customer', `
+      ${isStudent ? `
+        <div class="input-group"><label>Student ID *</label><input id="adm-student-id" placeholder="CU2024999"></div>
+        <div class="input-group"><label>Full Name *</label><input id="adm-name"></div>
+        <div class="input-group"><label>Programme</label><input id="adm-programme"></div>
+        <div class="input-group"><label>Email</label><input id="adm-email" type="email"></div>
+        <div class="input-group"><label>Phone</label><input id="adm-phone"></div>
+      ` : `
+        <div class="input-group"><label>Full Name *</label><input id="adm-name"></div>
+        <div class="input-group"><label>Phone *</label><input id="adm-phone" placeholder="60123456789"></div>
+        <div class="input-group"><label>Email</label><input id="adm-email" type="email"></div>
+      `}`,
+      `<button class="btn btn-outline btn-sm" onclick="closeModal()">Cancel</button>
+       <button class="btn btn-primary btn-sm" onclick="submitAdminAddMember('${type}')">Add Member</button>`
     );
+  };
+
+  window.submitAdminAddMember = async function (type) {
+    const name = document.getElementById('adm-name')?.value?.trim();
+    const phone = document.getElementById('adm-phone')?.value?.trim();
+    const email = document.getElementById('adm-email')?.value?.trim();
+    if (!name) { toast('Name is required', 'error'); return; }
+    if (type === 'general_customer' && !phone) { toast('Phone is required', 'error'); return; }
+    const payload = {
+      customerType: type,
+      name,
+      phone: phone || null,
+      email: email || null,
+    };
+    if (type === 'city_student') {
+      const studentId = document.getElementById('adm-student-id')?.value?.trim();
+      if (!studentId) { toast('Student ID is required', 'error'); return; }
+      payload.studentId = studentId.toUpperCase();
+      payload.programme = document.getElementById('adm-programme')?.value?.trim() || '';
+    }
+    if (apiEnabled) {
+      try {
+        await apiPost('/api/members', payload);
+        await syncFromApi();
+        closeModal();
+        toast('Member added', 'success');
+        renderAdmin();
+        return;
+      } catch (e) {
+        toast(friendlyAuthError(e), 'error');
+        return;
+      }
+    }
+    const data = loadData();
+    if (type === 'city_student' && data.students.some(s => s.studentId === payload.studentId)) {
+      toast('Student ID already exists', 'error'); return;
+    }
+    if (phone && data.students.some(s => s.phone === phone)) {
+      toast('Phone already registered', 'error'); return;
+    }
+    data.students.push(createMember({
+      customerType: type,
+      studentId: payload.studentId || null,
+      name,
+      programme: payload.programme,
+      email: email || null,
+      phone: phone || null,
+    }));
+    saveData(data);
+    closeModal();
+    toast('Member added', 'success');
+    renderAdmin();
   };
 
   window.getEligibleOffers = function (member) {
@@ -54,7 +237,6 @@
 
   window.calcOfferDiscount = function (offer, cart, subtotal) {
     if (!offer) return { discount: 0, pointsMultiplier: 1, label: '' };
-    const menu = loadData().menu;
     if (offer.discountType === 'double_points') {
       return { discount: 0, pointsMultiplier: Number(offer.discountValue) || 2, label: offer.offerName };
     }
@@ -93,24 +275,18 @@
     return `<div class="barcode-visual">${bars}</div><div class="barcode-code">${code}</div>`;
   };
 
-  window.showLoginScreen = function () {
-    document.getElementById('login-screen')?.classList.remove('hidden');
-    document.getElementById('entry-screen')?.classList.add('hidden');
-    document.getElementById('role-switcher')?.classList.add('hidden');
-    ['customer-app', 'staff-app', 'admin-app'].forEach(id => document.getElementById(id)?.classList.add('hidden'));
-  };
-
-  window.hideLoginScreen = function () {
-    document.getElementById('login-screen')?.classList.add('hidden');
-  };
-
   window.doLogin = async function (username, password) {
+    setLoginError('');
+    if (!username?.trim() || !password) {
+      setLoginError('Please enter your username and password.');
+      return;
+    }
     if (apiEnabled) {
       try {
-        const res = await apiPost('/api/auth/login', { username, password });
+        const res = await apiPost('/api/auth/login', { username: username.trim(), password });
         const d = res.data;
         setAuthSession({
-          username: d.user.username || username,
+          username: d.user.username || username.trim(),
           role: d.user.role,
           fullName: d.user.fullName,
           memberCode: d.memberCode,
@@ -122,19 +298,29 @@
         routeAfterLogin(d.user.role, d.memberCode);
         return;
       } catch (e) {
-        toast(e.message || 'Login failed', 'error');
+        setLoginError(friendlyAuthError(e));
         return;
       }
     }
+    const key = username.trim();
     const DEMO = {
       admin: { password: 'admin123', role: 'admin', fullName: 'Café Admin' },
       staff: { password: 'staff123', role: 'staff', fullName: 'Counter Staff' },
       CU2024001: { password: 'demo123', role: 'customer', fullName: 'Ahmad Faiz', memberCode: 'CU-M-2024001' },
       general001: { password: 'demo123', role: 'customer', fullName: 'Ali Rahman', memberCode: 'GC-M-001' },
     };
-    const acc = DEMO[username.trim()];
-    if (!acc || acc.password !== password) { toast('Invalid credentials', 'error'); return; }
-    setAuthSession({ username: username.trim(), role: acc.role, fullName: acc.fullName, memberCode: acc.memberCode });
+    let acc = DEMO[key] || DEMO[key.toUpperCase()];
+    if (!acc) {
+      const member = findMemberLocal(key);
+      if (member) {
+        acc = DEMO[member.studentId] || DEMO[member.memberCode] || (member.phone === key ? DEMO.general001 : null);
+      }
+    }
+    if (!acc || acc.password !== password) {
+      setLoginError('Invalid username or password. Please try again.');
+      return;
+    }
+    setAuthSession({ username: key, role: acc.role, fullName: acc.fullName, memberCode: acc.memberCode });
     toast('Welcome, ' + acc.fullName, 'success');
     routeAfterLogin(acc.role, acc.memberCode);
   };
@@ -144,7 +330,7 @@
     if (role === 'admin') showView('admin');
     else if (role === 'staff') showView('staff');
     else if (role === 'customer') {
-      const m = findMemberLocal(memberCode || 'CU2024001') || findMemberLocal('CU2024001');
+      const m = findMemberLocal(memberCode) || findMemberLocal('CU2024001');
       const ui = loadUiState();
       ui.selectedCustomerId = m?.studentId || m?.memberCode || memberCode;
       saveUiState(ui);
@@ -166,94 +352,124 @@
     doLogin(u, p);
   };
 
-  window.showRegisterModal = function (type) {
-    const isStudent = type === 'city_student';
-    showModal(isStudent ? 'Register City University Student' : 'Register General Customer', `
-      <div class="input-group"><label>${isStudent ? 'Student ID' : 'Full Name'} *</label>
-        <input id="reg-primary" placeholder="${isStudent ? 'CU2024006' : 'Full name'}"></div>
-      ${isStudent ? `<div class="input-group"><label>Name *</label><input id="reg-name"></div>
-        <div class="input-group"><label>Programme *</label><input id="reg-programme"></div>` : ''}
-      <div class="input-group"><label>${isStudent ? 'Email' : 'Phone'} *</label>
-        <input id="reg-contact" placeholder="${isStudent ? 'email@student.city.edu.my' : '60123456789'}"></div>
-      <div class="input-group"><label>${isStudent ? 'Phone (optional)' : 'Email (optional)'}</label>
-        <input id="reg-secondary"></div>
-      <div class="input-group"><label>Password (min 6 characters) *</label>
-        <input id="reg-password" type="password" placeholder="Choose a password"></div>
-    `, `
-      <button class="btn btn-outline btn-sm" onclick="closeModal()">Cancel</button>
-      <button class="btn btn-primary btn-sm" onclick="submitRegister('${type}')">Register</button>
-    `);
-  };
-
   window.submitRegister = async function (customerType) {
-    const primary = document.getElementById('reg-primary')?.value?.trim();
-    const name = customerType === 'city_student'
-      ? document.getElementById('reg-name')?.value?.trim()
-      : primary;
-    const programme = document.getElementById('reg-programme')?.value?.trim();
-    const contact = document.getElementById('reg-contact')?.value?.trim();
-    const secondary = document.getElementById('reg-secondary')?.value?.trim();
-    const password = document.getElementById('reg-password')?.value || 'demo123';
-    if (!name) { toast('Name is required', 'error'); return; }
-    if (password.length < 6) { toast('Password must be at least 6 characters', 'error'); return; }
-    if (customerType === 'city_student' && !primary) { toast('Student ID required', 'error'); return; }
-    if (customerType === 'general_customer' && !contact) { toast('Phone required', 'error'); return; }
+    setRegisterError('');
+    const password = document.getElementById('reg-password')?.value || '';
+    const confirm = document.getElementById('reg-confirm')?.value || '';
+    const name = document.getElementById('reg-name')?.value?.trim();
 
-    const body = customerType === 'city_student'
-      ? { customerType, studentId: primary.toUpperCase(), name, programme, email: contact, phone: secondary, password }
-      : { customerType, name, phone: contact, email: secondary || null, password };
+    if (!name) { setRegisterError('Full name is required.'); return; }
+    if (password.length < 6) { setRegisterError('Password must be at least 6 characters.'); return; }
+    if (password !== confirm) { setRegisterError('Passwords do not match.'); return; }
+
+    let body;
+    if (customerType === 'city_student') {
+      const studentId = document.getElementById('reg-student-id')?.value?.trim();
+      const programme = document.getElementById('reg-programme')?.value?.trim();
+      const email = document.getElementById('reg-email')?.value?.trim();
+      const phone = document.getElementById('reg-phone')?.value?.trim();
+      if (!studentId) { setRegisterError('Student ID is required.'); return; }
+      if (!programme) { setRegisterError('Programme is required.'); return; }
+      if (!email) { setRegisterError('Email is required.'); return; }
+      body = {
+        registrationType: 'city_student',
+        customerType: 'city_student',
+        studentId: studentId.toUpperCase(),
+        name,
+        programme,
+        email,
+        phone: phone || null,
+        password,
+        confirmPassword: confirm,
+      };
+    } else {
+      const phone = document.getElementById('reg-phone')?.value?.trim();
+      const email = document.getElementById('reg-email')?.value?.trim();
+      if (!phone) { setRegisterError('Phone number is required.'); return; }
+      body = {
+        registrationType: 'general_customer',
+        customerType: 'general_customer',
+        name,
+        phone,
+        email: email || null,
+        password,
+        confirmPassword: confirm,
+      };
+    }
 
     if (apiEnabled) {
       try {
         const res = await apiPost('/api/auth/register', body);
-        closeModal();
-        toast('Registration successful!', 'success');
-        const mc = res.data.member?.memberCode || res.data.member?.member_code;
+        const d = res.data;
+        const member = d.member || {};
+        const mc = member.memberCode || member.member_code || d.memberCode;
         setAuthSession({
-          username: res.data.username || res.data.user?.username,
+          username: d.user?.username || body.phone || body.studentId,
           role: 'customer',
           fullName: name,
           memberCode: mc,
-          token: res.data.token,
-          userId: res.data.user?.id,
+          token: d.token,
+          userId: d.user?.id,
         });
         if (typeof syncFromApi === 'function') await syncFromApi();
-        const ui = loadUiState();
-        ui.selectedCustomerId = res.data.member?.studentId || res.data.member?.student_id || mc;
-        saveUiState(ui);
         hideLoginScreen();
+        const ui = loadUiState();
+        ui.selectedCustomerId = member.studentId || member.student_id || mc;
+        saveUiState(ui);
+        const isStudent = customerType === 'city_student';
+        toast(
+          isStudent
+            ? 'Student registration successful. Special offers are now available.'
+            : 'Registration successful. You can now earn points and stamps.',
+          'success'
+        );
         showView('customer');
         return;
       } catch (e) {
-        toast(e.message || 'Registration failed', 'error');
+        setRegisterError(friendlyAuthError(e));
         return;
       }
     }
 
     const data = loadData();
-    if (customerType === 'city_student' && data.students.some(s => s.studentId === primary.toUpperCase())) {
-      toast('Student ID already registered', 'error'); return;
+    if (customerType === 'city_student') {
+      const sid = body.studentId;
+      if (data.students.some(s => s.studentId === sid)) {
+        setRegisterError('Student ID already registered.'); return;
+      }
+      if (body.email && data.students.some(s => s.email && s.email.toLowerCase() === body.email.toLowerCase())) {
+        setRegisterError('Email already registered.'); return;
+      }
     }
-    if (data.students.some(s => s.phone && s.phone === contact)) {
-      toast('Phone already registered', 'error'); return;
+    if (body.phone && data.students.some(s => s.phone === body.phone)) {
+      setRegisterError('Phone number already registered.'); return;
     }
     const member = createMember({
       customerType,
-      studentId: customerType === 'city_student' ? primary.toUpperCase() : null,
+      studentId: customerType === 'city_student' ? body.studentId : null,
       name,
-      programme: programme || null,
-      email: customerType === 'city_student' ? contact : (secondary || null),
-      phone: customerType === 'general_customer' ? contact : (secondary || null),
+      programme: body.programme || null,
+      email: customerType === 'city_student' ? body.email : (body.email || null),
+      phone: customerType === 'general_customer' ? body.phone : (body.phone || null),
     });
     data.students.push(member);
     saveData(data);
-    closeModal();
-    toast('Registration successful!', 'success');
-    setAuthSession({ username: member.memberCode, role: 'customer', fullName: name, memberCode: member.memberCode });
+    setAuthSession({
+      username: customerType === 'city_student' ? member.studentId : member.phone,
+      role: 'customer',
+      fullName: name,
+      memberCode: member.memberCode,
+    });
     const ui = loadUiState();
     ui.selectedCustomerId = member.studentId || member.memberCode;
     saveUiState(ui);
     hideLoginScreen();
+    toast(
+      customerType === 'city_student'
+        ? 'Student registration successful. Special offers are now available.'
+        : 'Registration successful. You can now earn points and stamps.',
+      'success'
+    );
     showView('customer');
   };
 

@@ -818,6 +818,24 @@
     .demo-login-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 16px; }
     .demo-login-grid button { font-size: 0.75rem; padding: 8px; }
     .login-note { font-size: 0.75rem; color: #999; margin-top: 16px; text-align: center; }
+    .login-hint { font-size: 0.8rem; color: #666; margin: 8px 0 0; line-height: 1.45; }
+    .login-error { background: #fff0f0; border: 1px solid #ffcdd2; color: #c62828; padding: 10px 12px; border-radius: 8px; font-size: 0.85rem; margin-bottom: 12px; display: none; }
+    .login-error.visible { display: block; }
+    .auth-link { background: none; border: none; color: var(--pink); cursor: pointer; font-size: 0.9rem; text-decoration: underline; padding: 0; }
+    .auth-link:hover { color: var(--black); }
+    .register-type-grid { display: grid; gap: 12px; margin: 20px 0; }
+    .register-type-card {
+      border: 2px solid #eee; border-radius: 12px; padding: 20px; cursor: pointer; text-align: left;
+      transition: var(--transition); background: var(--white);
+    }
+    .register-type-card:hover { border-color: var(--pink); background: var(--soft-pink); }
+    .register-type-card h3 { font-size: 1rem; margin-bottom: 6px; color: var(--black); }
+    .register-type-card p { font-size: 0.85rem; color: #666; margin: 0; }
+    .register-type-card .icon { font-size: 1.5rem; margin-bottom: 8px; }
+    #register-screen { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, var(--black) 0%, #1a1a1f 100%); padding: 24px; }
+    #register-screen.hidden { display: none; }
+    .auth-back { font-size: 0.85rem; color: #888; margin-bottom: 12px; cursor: pointer; display: inline-block; }
+    .auth-back:hover { color: var(--pink); }
 
     /* Member badges */
     .member-type-badge {
@@ -856,29 +874,65 @@
   <div class="login-card">
     <h1>City Café <span>Rewards</span></h1>
     <p class="subtitle">City University Malaysia · Member Login</p>
+    <div id="login-error" class="login-error" role="alert"></div>
     <form id="login-form">
       <div class="input-group">
-        <label>Email / Username</label>
-        <input type="text" id="login-username" placeholder="admin, staff, CU2024001, general001" autocomplete="username">
+        <label>Username / Student ID / Member Code / Phone</label>
+        <input type="text" id="login-username" placeholder="e.g. CU2024001, GC-M-001, 60123456789" autocomplete="username">
       </div>
       <div class="input-group">
         <label>Password</label>
-        <input type="password" id="login-password" placeholder="Password" autocomplete="current-password">
+        <input type="password" id="login-password" placeholder="Enter your password" autocomplete="current-password">
       </div>
       <button type="submit" class="btn btn-primary" style="width:100%;margin-top:8px">Login</button>
     </form>
-    <div style="text-align:center;margin:16px 0">
-      <button class="btn btn-outline btn-sm" onclick="showRegisterModal('city_student')">Register City University Student</button>
-      <button class="btn btn-outline btn-sm" style="margin-left:8px" onclick="showRegisterModal('general_customer')">Register General Customer</button>
+    <p class="login-hint">City University students can login using Student ID.</p>
+    <p class="login-hint">General customers can login using phone number or member code.</p>
+    <div style="text-align:center;margin:20px 0 12px">
+      <button type="button" class="auth-link" onclick="showRegisterTypeScreen()">Register New Member</button>
     </div>
-    <p style="font-size:0.85rem;color:#666;margin-top:12px">Demo quick login:</p>
+    <p style="font-size:0.85rem;color:#666;margin-top:8px">Demo quick login:</p>
     <div class="demo-login-grid">
-      <button class="btn btn-secondary btn-sm" onclick="demoLogin('CU2024001','demo123')">Login as Student</button>
-      <button class="btn btn-secondary btn-sm" onclick="demoLogin('general001','demo123')">Login as General Customer</button>
-      <button class="btn btn-secondary btn-sm" onclick="demoLogin('staff','staff123')">Login as Staff</button>
-      <button class="btn btn-secondary btn-sm" onclick="demoLogin('admin','admin123')">Login as Admin</button>
+      <button type="button" class="btn btn-secondary btn-sm" onclick="demoLogin('admin','admin123')">Login as Admin</button>
+      <button type="button" class="btn btn-secondary btn-sm" onclick="demoLogin('staff','staff123')">Login as Staff</button>
+      <button type="button" class="btn btn-secondary btn-sm" onclick="demoLogin('CU2024001','demo123')">Login as City Student</button>
+      <button type="button" class="btn btn-secondary btn-sm" onclick="demoLogin('general001','demo123')">Login as General Customer</button>
     </div>
-    <p class="login-note">Passwords are hashed with bcrypt. Sessions use JWT (7-day expiry). Set JWT_SECRET in production.</p>
+    <p class="login-note">Demo accounts for testing. Production uses secure JWT sessions.</p>
+  </div>
+</div>
+
+<!-- REGISTER SCREEN -->
+<div id="register-screen" class="hidden">
+  <div class="login-card" style="max-width:480px">
+    <div id="register-type-step">
+      <span class="auth-back" onclick="showLoginScreen()">← Back to Login</span>
+      <h1>Register <span style="color:var(--pink)">New Member</span></h1>
+      <p class="subtitle">Choose your membership type</p>
+      <div class="register-type-grid">
+        <div class="register-type-card" onclick="showRegisterForm('city_student')">
+          <div class="icon">🎓</div>
+          <h3>City University Student</h3>
+          <p>Student ID required. Special offers available after registration.</p>
+        </div>
+        <div class="register-type-card" onclick="showRegisterForm('general_customer')">
+          <div class="icon">☕</div>
+          <h3>General Customer</h3>
+          <p>Register with phone number. Earn points and stamps on every visit.</p>
+        </div>
+      </div>
+    </div>
+    <div id="register-form-step" class="hidden">
+      <span class="auth-back" onclick="showRegisterTypeScreen()">← Choose membership type</span>
+      <h1 id="register-form-title">Register</h1>
+      <p class="subtitle" id="register-form-subtitle"></p>
+      <div id="register-error" class="login-error" role="alert"></div>
+      <div id="register-form-fields"></div>
+      <div style="display:flex;gap:8px;margin-top:16px;justify-content:flex-end">
+        <button type="button" class="btn btn-outline btn-sm" onclick="showRegisterTypeScreen()">Cancel</button>
+        <button type="button" class="btn btn-primary btn-sm" id="register-submit-btn">Create Account</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -1058,21 +1112,40 @@ const DEFAULT_OFFERS = [
 
 function createMember(base) {
   const isStudent = base.customerType === 'city_student' || !!base.studentId;
-  const memberCode = base.memberCode || (isStudent ? 'CU-M-' + (base.studentId || '').replace('CU', '') : 'GC-M-' + Date.now().toString().slice(-6));
+  let memberCode = base.memberCode;
+  let barcodeValue = base.barcodeValue;
+  let qrValue = base.qrValue;
+  if (isStudent) {
+    const sid = (base.studentId || '').toUpperCase();
+    memberCode = memberCode || ('CU-M-' + sid.replace(/^CU/i, ''));
+    barcodeValue = barcodeValue || sid;
+    qrValue = qrValue || sid;
+  } else if (!memberCode) {
+    const data = typeof loadData === 'function' ? loadData() : { students: [] };
+    const gcNums = (data.students || [])
+      .map(s => (s.barcodeValue || s.memberCode || '').match(/^GC(\d+)$/i))
+      .filter(Boolean)
+      .map(m => parseInt(m[1], 10));
+    const next = (gcNums.length ? Math.max(...gcNums) : 0) + 1;
+    const padded = String(next).padStart(3, '0');
+    memberCode = `GC-M-${padded}`;
+    barcodeValue = `GC${padded}`;
+    qrValue = barcodeValue;
+  }
   const scanVal = isStudent ? (base.studentId || memberCode) : memberCode;
   return {
     ...base,
     customerType: base.customerType || (isStudent ? 'city_student' : 'general_customer'),
     memberCode,
-    barcodeValue: base.barcodeValue || scanVal,
-    qrValue: base.qrValue || scanVal,
+    barcodeValue: barcodeValue || scanVal,
+    qrValue: qrValue || scanVal,
     phone: base.phone || '',
     isActive: base.isActive !== false,
+    membershipStatus: base.membershipStatus || 'Active Member',
     points: base.points || 0,
     totalPurchases: base.totalPurchases || 0,
     currentStampProgress: base.currentStampProgress || 0,
     freeDrinksAvailable: base.freeDrinksAvailable || 0,
-    membershipStatus: base.membershipStatus || 'Active Member',
     transactionHistory: base.transactionHistory || []
   };
 }
@@ -1482,6 +1555,20 @@ async function apiPut(path, body) {
   return res.json();
 }
 
+async function apiPatch(path, body) {
+  const res = await fetch(`${API_URL}${path}`, {
+    method: 'PATCH',
+    headers: getApiAuthHeaders(),
+    body: JSON.stringify(body)
+  });
+  if (res.status === 401) { handleApiUnauthorized(); throw new Error('Authentication required'); }
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || `API error ${res.status}`);
+  }
+  return res.json();
+}
+
 function updateApiBadge(state) {
   const badge = document.getElementById('api-status-badge');
   if (!badge) return;
@@ -1713,12 +1800,20 @@ window.selectStudent = async function(id, context) {
 function renderCustomerHome(s) {
   const recent = s.transactionHistory.slice(0, 3);
   const pct = (s.currentStampProgress / STAMP_GOAL) * 100;
+  const ct = s.customerType || (s.studentId ? 'city_student' : 'general_customer');
+  const badge = typeof memberTypeBadge === 'function' ? memberTypeBadge(s) : '';
+  const studentOfferBanner = ct === 'city_student'
+    ? `<div class="pos-offers-panel" style="margin-bottom:12px"><strong>City University Student · Special Offers Active</strong></div>` : '';
+  const idLine = s.studentId
+    ? `${s.studentId} · ${s.membershipStatus}`
+    : `${s.memberCode || 'Member'} · ${s.membershipStatus}`;
   return `
-    <p style="font-size:1.1rem;font-weight:600;color:var(--black);margin-bottom:12px">Hi, ${s.name.split(' ')[0]} 👋</p>
+    <p style="font-size:1.1rem;font-weight:600;color:var(--black);margin-bottom:8px">Hi, ${s.name.split(' ')[0]} 👋 ${badge}</p>
+    ${studentOfferBanner}
     <div class="membership-card">
       <div class="card-label">City Café Rewards Member</div>
       <div class="card-name">${s.name}</div>
-      <div class="card-id">${s.studentId} · ${s.membershipStatus}</div>
+      <div class="card-id">${idLine}</div>
     </div>
     <div class="stat-grid">
       <div class="stat-box"><div class="stat-value">${s.points}</div><div class="stat-label">Total Points</div></div>
@@ -2662,15 +2757,78 @@ function renderAdminStudents() {
           <td><strong style="color:var(--pink)">${s.points}</strong></td>
           <td><span class="badge badge-pink">${s.isActive === false ? 'Inactive' : s.membershipStatus}</span></td>
           <td><button class="btn btn-sm btn-outline" onclick="viewStudentDetail('${s.studentId || s.memberCode}')">View</button>
+          <button class="btn btn-sm btn-outline" onclick="editMemberProfile('${s.studentId || s.memberCode}')">Edit</button>
           <button class="btn btn-sm btn-secondary" onclick="toggleMemberActive('${s.studentId || s.memberCode}',${s.isActive !== false ? 'false' : 'true'})">${s.isActive === false ? 'Activate' : 'Deactivate'}</button></td>
         </tr>`).join('')}</tbody>
       </table>
     </div>`;
 }
 
-window.toggleMemberActive = function(id, active) {
-  updateStudent(id, s => { s.isActive = active; s.membershipStatus = active ? 'Active Member' : 'Inactive'; });
+window.toggleMemberActive = async function(id, active) {
+  const s = getStudent(id);
+  if (apiEnabled && s?.id) {
+    try {
+      await apiPatch(`/api/members/${s.id}/status`, { isActive: active });
+      await syncFromApi();
+      toast(active ? 'Member activated' : 'Member deactivated', 'success');
+      renderAdmin();
+      return;
+    } catch (e) {
+      toast(e.message || 'Update failed', 'error');
+      return;
+    }
+  }
+  updateStudent(id, st => { st.isActive = active; st.membershipStatus = active ? 'Active Member' : 'Inactive'; });
   toast(active ? 'Member activated' : 'Member deactivated', 'success');
+  renderAdmin();
+};
+
+window.editMemberProfile = function(id) {
+  const s = getStudent(id);
+  if (!s) return;
+  const isStudent = (s.customerType || 'city_student') === 'city_student';
+  showModal('Edit Member — ' + s.name, `
+    <div class="input-group"><label>Full Name</label><input id="edit-m-name" value="${s.name || ''}"></div>
+    ${isStudent ? `<div class="input-group"><label>Programme</label><input id="edit-m-prog" value="${s.programme || ''}"></div>` : ''}
+    <div class="input-group"><label>Phone</label><input id="edit-m-phone" value="${s.phone || ''}"></div>
+    <div class="input-group"><label>Email</label><input id="edit-m-email" value="${s.email || ''}"></div>
+    <div class="input-group"><label>Membership Status</label><input id="edit-m-status" value="${s.membershipStatus || 'Active Member'}"></div>`,
+    `<button class="btn btn-outline btn-sm" onclick="closeModal()">Cancel</button>
+     <button class="btn btn-primary btn-sm" onclick="saveMemberProfile('${id}')">Save</button>`);
+};
+
+window.saveMemberProfile = async function(id) {
+  const s = getStudent(id);
+  if (!s) return;
+  const payload = {
+    name: document.getElementById('edit-m-name')?.value?.trim(),
+    programme: document.getElementById('edit-m-prog')?.value?.trim(),
+    phone: document.getElementById('edit-m-phone')?.value?.trim(),
+    email: document.getElementById('edit-m-email')?.value?.trim(),
+    membershipStatus: document.getElementById('edit-m-status')?.value?.trim(),
+  };
+  if (apiEnabled && s.id) {
+    try {
+      await apiPut(`/api/members/${s.id}`, payload);
+      await syncFromApi();
+      closeModal();
+      toast('Member updated', 'success');
+      renderAdmin();
+      return;
+    } catch (e) {
+      toast(e.message || 'Update failed', 'error');
+      return;
+    }
+  }
+  updateStudent(id, st => {
+    if (payload.name) st.name = payload.name;
+    if (payload.programme !== undefined) st.programme = payload.programme;
+    if (payload.phone !== undefined) st.phone = payload.phone;
+    if (payload.email !== undefined) st.email = payload.email;
+    if (payload.membershipStatus) st.membershipStatus = payload.membershipStatus;
+  });
+  closeModal();
+  toast('Member updated', 'success');
   renderAdmin();
 };
 
@@ -2760,15 +2918,25 @@ window.addStudent = function() {
 window.viewStudentDetail = function(id) {
   const s = getStudent(id);
   if (!s) return;
+  const ct = s.customerType || (s.studentId ? 'city_student' : 'general_customer');
   const history = s.transactionHistory.slice(0, 10).map(tx => renderTxItem(tx)).join('') ||
     '<p style="color:#999">No history</p>';
+  const badge = typeof memberTypeBadge === 'function' ? memberTypeBadge(s) : '';
   showModal(s.name, `
-    <div class="profile-field"><label>Student ID</label><span>${s.studentId}</span></div>
-    <div class="profile-field"><label>Programme</label><span>${s.programme}</span></div>
+    <div style="margin-bottom:12px">${badge}</div>
+    <div class="profile-field"><label>Customer Type</label><span>${ct === 'city_student' ? 'City University Student' : 'General Customer'}</span></div>
+    <div class="profile-field"><label>Member Code</label><span>${s.memberCode || '—'}</span></div>
+    ${s.studentId ? `<div class="profile-field"><label>Student ID</label><span>${s.studentId}</span></div>` : ''}
+    ${s.programme ? `<div class="profile-field"><label>Programme</label><span>${s.programme}</span></div>` : ''}
+    ${s.phone ? `<div class="profile-field"><label>Phone</label><span>${s.phone}</span></div>` : ''}
+    <div class="profile-field"><label>Email</label><span>${s.email || '—'}</span></div>
     <div class="profile-field"><label>Points</label><span>${s.points}</span></div>
     <div class="profile-field"><label>Purchases</label><span>${s.totalPurchases}</span></div>
     <h4 style="margin:16px 0 8px">Recent History</h4>${history}
-    <div style="margin-top:16px"><button class="btn btn-sm btn-outline" onclick="resetStudent('${id}')">Reset Student Data</button></div>`);
+    <div style="margin-top:16px;display:flex;gap:8px">
+      <button class="btn btn-sm btn-outline" onclick="closeModal();editMemberProfile('${id}')">Edit Profile</button>
+      <button class="btn btn-sm btn-outline" onclick="resetStudent('${id}')">Reset Member Data</button>
+    </div>`);
 };
 
 window.editStudentPoints = function(id) {

@@ -32,9 +32,8 @@ export async function findMemberByScan(client, code) {
         OR UPPER(barcode_value) = $1
         OR UPPER(qr_value) = $1
         OR phone = $2
-        OR UPPER(member_code) = $3
      LIMIT 1`,
-    [upper, q, q.toUpperCase()]
+    [upper, q]
   );
   return rows[0] || null;
 }
@@ -43,7 +42,40 @@ export async function findMemberByCode(client, code) {
   return findMemberByScan(client, code);
 }
 
-export function generateMemberCode(type) {
-  const prefix = type === 'city_student' ? 'CU-M' : 'GC-M';
-  return `${prefix}-${Date.now().toString().slice(-6)}`;
+/** City student: CU2024999 → CU-M-2024999 */
+export function generateStudentMemberCode(studentId) {
+  const id = (studentId || '').trim().toUpperCase();
+  const suffix = id.replace(/^CU/i, '') || id;
+  return `CU-M-${suffix}`;
+}
+
+/** General customer: GC006 / GC-M-006 (sequential from existing GC### records) */
+export async function nextGeneralCustomerIds(client) {
+  const { rows } = await client.query(
+    `SELECT barcode_value FROM students
+     WHERE customer_type = 'general_customer' AND barcode_value ~ '^GC[0-9]+$'
+     ORDER BY CAST(SUBSTRING(barcode_value FROM 3) AS INTEGER) DESC NULLS LAST
+     LIMIT 1`
+  );
+  let maxNum = 0;
+  if (rows[0]?.barcode_value) {
+    const m = String(rows[0].barcode_value).match(/^GC(\d+)$/i);
+    if (m) maxNum = parseInt(m[1], 10);
+  }
+  const next = maxNum + 1;
+  const padded = String(next).padStart(3, '0');
+  const customerId = `GC${padded}`;
+  return {
+    customerId,
+    memberCode: `GC-M-${padded}`,
+    barcodeValue: customerId,
+    qrValue: customerId,
+  };
+}
+
+export function generateMemberCode(type, studentId = null) {
+  if (type === 'city_student' && studentId) {
+    return generateStudentMemberCode(studentId);
+  }
+  return `GC-M-${Date.now().toString().slice(-6)}`;
 }

@@ -1,6 +1,13 @@
 import { Router } from 'express';
 import { query, pool } from '../db/pool.js';
-import { generateMemberCode, memberSelectFields, mapMemberRow } from '../services/members.js';
+import {
+  generateStudentMemberCode,
+  nextGeneralCustomerIds,
+  memberSelectFields,
+  mapMemberRow,
+  findMemberByScan,
+} from '../services/members.js';
+import { findUserForLogin, resolveMemberCodeForUser } from '../services/auth-users.js';
 import {
   hashPassword,
   verifyPassword,
@@ -10,18 +17,6 @@ import {
 import { requireAuth } from '../middleware/auth.js';
 
 const router = Router();
-
-async function resolveMemberCode(username, role) {
-  if (role !== 'customer') return null;
-  const key = username.trim();
-  const { rows } = await pool.query(
-    `SELECT member_code, student_id FROM students
-     WHERE UPPER(student_id) = $1 OR member_code = $1 OR phone = $1
-     LIMIT 1`,
-    [key.toUpperCase()]
-  );
-  return rows[0]?.member_code || rows[0]?.student_id || null;
-}
 
 function authResponse(user, memberCode, token) {
   return {
@@ -38,61 +33,106 @@ function authResponse(user, memberCode, token) {
   };
 }
 
+function normalizeRegistrationType(body) {
+  return body.registrationType || body.customerType || 'general_customer';
+}
+
 router.post('/register', async (req, res, next) => {
   try {
+    const customerType = normalizeRegistrationType(req.body);
     const {
-      customerType = 'general_customer',
       studentId, name, programme, email, phone,
-      password,
+      password, confirmPassword,
     } = req.body;
 
-    if (!name) return res.status(400).json({ error: 'Name is required' });
+    if (!name?.trim()) return res.status(400).json({ error: 'Name is required' });
     if (!password || String(password).length < 6) {
       return res.status(400).json({ error: 'Password must be at least 6 characters' });
     }
+    if (confirmPassword !== undefined && password !== confirmPassword) {
+      return res.status(400).json({ error: 'Passwords do not match' });
+    }
 
     if (customerType === 'city_student') {
-      if (!studentId) return res.status(400).json({ error: 'Student ID is required' });
-      const dup = await query(`SELECT id FROM students WHERE UPPER(student_id) = $1`, [studentId.toUpperCase()]);
+      if (!studentId?.trim()) return res.status(400).json({ error: 'Student ID is required' });
+      if (!email?.trim()) return res.status(400).json({ error: 'Email is required' });
+      const sid = studentId.trim().toUpperCase();
+      const dup = await query(`SELECT id FROM students WHERE UPPER(student_id) = $1`, [sid]);
       if (dup.rows[0]) return res.status(409).json({ error: 'Student ID already registered' });
-    }
-    if (phone) {
-      const dup = await query(`SELECT id FROM students WHERE phone = $1`, [phone]);
-      if (dup.rows[0]) return res.status(409).json({ error: 'Phone number already registered' });
-    }
-    if (email) {
-      const dup = await query(`SELECT id FROM students WHERE LOWER(email) = LOWER($1)`, [email]);
-      if (dup.rows[0]) return res.status(409).json({ error: 'Email already registered' });
+    } else if (customerType === 'general_customer') {
+      if (!phone?.trim()) return res.status(400).json({ error: 'Phone number is required' });
+    } else {
+      return res.status(400).json({ error: 'Invalid registration type' });
     }
 
-    const memberCode = generateMemberCode(customerType);
-    const scanValue = customerType === 'city_student' ? studentId.toUpperCase() : memberCode;
-    const username = customerType === 'city_student' ? studentId.toUpperCase() : (phone || memberCode);
+    if (phone?.trim()) {
+      const dup = await query(`SELECT id FROM students WHERE phone = $1`, [phone.trim()]);
+      if (dup.rows[0]) return res.status(409).json({ error: 'Phone number already registered' });
+    }
+    if (email?.trim()) {
+      const dup = await query(
+        `SELECT id FROM students WHERE LOWER(email) = LOWER($1)`,
+        [email.trim()]
+      );
+      if (dup.rows[0]) return res.status(409).json({ error: 'Email already registered' });
+      const dupUser = await query(
+        `SELECT id FROM users WHERE LOWER(email) = LOWER($1)`,
+        [email.trim()]
+      );
+      if (dupUser.rows[0]) return res.status(409).json({ error: 'Email already registered' });
+    }
+
+    let memberCode;
+    let barcodeValue;
+    let qrValue;
+    let username;
+
+    if (customerType === 'city_student') {
+      const sid = studentId.trim().toUpperCase();
+      memberCode = generateStudentMemberCode(sid);
+      barcodeValue = sid;
+      qrValue = sid;
+      username = sid;
+    } else {
+      const ids = await nextGeneralCustomerIds(pool);
+      memberCode = ids.memberCode;
+      barcodeValue = ids.barcodeValue;
+      qrValue = ids.qrValue;
+      username = phone.trim();
+    }
+
+    const dupUsername = await query(`SELECT id FROM users WHERE username = $1`, [username]);
+    if (dupUsername.rows[0]) {
+      return res.status(409).json({ error: 'An account with this login already exists' });
+    }
+
     const passwordHash = await hashPassword(password);
 
     const { rows } = await query(
       `INSERT INTO students (
-        student_id, name, programme, email, phone, member_code, barcode_value, qr_value, customer_type
-      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+        student_id, name, programme, email, phone, member_code, barcode_value, qr_value,
+        customer_type, membership_status, is_active
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,'Active Member',TRUE)
       RETURNING ${memberSelectFields()}`,
       [
-        customerType === 'city_student' ? studentId.toUpperCase() : null,
-        name,
-        customerType === 'city_student' ? (programme || '') : null,
-        email || null,
-        phone || null,
+        customerType === 'city_student' ? studentId.trim().toUpperCase() : null,
+        name.trim(),
+        customerType === 'city_student' ? (programme?.trim() || '') : null,
+        email?.trim() || null,
+        phone?.trim() || null,
         memberCode,
-        scanValue,
-        scanValue,
+        barcodeValue,
+        qrValue,
         customerType,
       ]
     );
 
+    const userEmail = email?.trim() || `${username}@member.local`;
     const userResult = await query(
       `INSERT INTO users (username, email, password_hash, role, full_name)
        VALUES ($1,$2,$3,'customer',$4)
        RETURNING id, username, email, role, full_name`,
-      [username, email || `${username}@member.local`, passwordHash, name]
+      [username, userEmail, passwordHash, name.trim()]
     );
     const user = userResult.rows[0];
     const token = signAccessToken({
@@ -128,12 +168,7 @@ router.post('/login', async (req, res, next) => {
       return res.status(400).json({ error: 'Username and password required' });
     }
 
-    const { rows } = await query(
-      `SELECT id, username, email, password_hash, role, full_name, is_active FROM users
-       WHERE username = $1 OR email = $1 LIMIT 1`,
-      [username.trim()]
-    );
-    const user = rows[0];
+    const user = await findUserForLogin(username);
     if (!user || user.is_active === false) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
@@ -145,7 +180,7 @@ router.post('/login', async (req, res, next) => {
       await upgradeLegacyPassword(pool, user.id, password);
     }
 
-    const memberCode = await resolveMemberCode(user.username, user.role);
+    const memberCode = await resolveMemberCodeForUser(user);
     const token = signAccessToken({
       sub: user.id,
       username: user.username,
@@ -174,15 +209,11 @@ router.get('/me', requireAuth, async (req, res, next) => {
     );
     const user = rows[0];
     if (!user) return res.status(404).json({ error: 'User not found' });
-    const memberCode = req.user.memberCode || await resolveMemberCode(user.username, user.role);
+    const memberCode = req.user.memberCode || await resolveMemberCodeForUser(user);
     let member = null;
     if (memberCode) {
-      const m = await query(
-        `SELECT ${memberSelectFields()} FROM students
-         WHERE member_code = $1 OR UPPER(student_id) = $1 LIMIT 1`,
-        [memberCode.toUpperCase()]
-      );
-      if (m.rows[0]) member = mapMemberRow(m.rows[0]);
+      member = await findMemberByScan(pool, memberCode);
+      if (member) member = mapMemberRow(member);
     }
     res.json({ data: { user: { ...user, fullName: user.full_name }, memberCode, member } });
   } catch (err) {

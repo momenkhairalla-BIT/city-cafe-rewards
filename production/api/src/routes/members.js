@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { query, pool } from '../db/pool.js';
-import { memberSelectFields, mapMemberRow, findMemberByScan, generateMemberCode } from '../services/members.js';
+import { memberSelectFields, mapMemberRow, findMemberByScan, generateStudentMemberCode, nextGeneralCustomerIds } from '../services/members.js';
 import { requireRole } from '../middleware/auth.js';
 
 const router = Router();
@@ -60,15 +60,27 @@ router.post('/', requireRole('admin'), async (req, res, next) => {
       if (dup.rows[0]) return res.status(409).json({ error: 'Email already registered' });
     }
 
-    const memberCode = generateMemberCode(customerType);
-    const scanValue = customerType === 'city_student' ? studentId.toUpperCase() : memberCode;
-    const barcodeValue = scanValue;
-    const qrValue = scanValue;
+    let memberCode;
+    let barcodeValue;
+    let qrValue;
+
+    if (customerType === 'city_student') {
+      const sid = studentId.toUpperCase();
+      memberCode = generateStudentMemberCode(sid);
+      barcodeValue = sid;
+      qrValue = sid;
+    } else {
+      const ids = await nextGeneralCustomerIds(pool);
+      memberCode = ids.memberCode;
+      barcodeValue = ids.barcodeValue;
+      qrValue = ids.qrValue;
+    }
 
     const { rows } = await query(
       `INSERT INTO students (
-        student_id, name, programme, email, phone, member_code, barcode_value, qr_value, customer_type
-      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+        student_id, name, programme, email, phone, member_code, barcode_value, qr_value,
+        customer_type, membership_status, is_active
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,'Active Member',TRUE)
       RETURNING ${memberSelectFields()}`,
       [
         customerType === 'city_student' ? studentId.toUpperCase() : null,

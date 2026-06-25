@@ -13,7 +13,8 @@
     "verify-deploy": "node scripts/verify-deploy.js",
     "test:acceptance": "node scripts/acceptance-test.js",
     "test:production": "node scripts/test-production.js",
-    "test:production:live": "node scripts/run-production-live.js"
+    "test:production:live": "node scripts/run-production-live.js",
+    "test:phase2": "node scripts/test-phase2.js"
   },
   "engines": {
     "node": ">=20"
