@@ -11,7 +11,9 @@
     "migrate-v2": "node scripts/migrate-v2.js",
     "hash-passwords": "node scripts/hash-demo-passwords.js",
     "verify-deploy": "node scripts/verify-deploy.js",
-    "test:acceptance": "node scripts/acceptance-test.js"
+    "test:acceptance": "node scripts/acceptance-test.js",
+    "test:production": "node scripts/test-production.js",
+    "test:production:live": "node scripts/run-production-live.js"
   },
   "engines": {
     "node": ">=20"

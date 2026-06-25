@@ -1,8 +1,12 @@
 # Render Blueprint — City Café Rewards
-# Deploy: https://dashboard.render.com → New → Blueprint → connect this repo
 #
-# After first deploy, set DATABASE_URL in the Render dashboard
-# (paste your Neon PostgreSQL connection string).
+# Verified Render settings:
+#   Root Directory : production/api
+#   Build Command  : npm install
+#   Start Command  : npm start  (runs node src/index.js)
+#   Health Check   : /health
+#
+# After deploy, set DATABASE_URL in Render dashboard (Neon connection string).
 
 services:
   - type: web

@@ -1,8 +1,22 @@
-﻿node_modules/
+﻿# Dependencies
+node_modules/
+production/api/node_modules/
+
+# Secrets — never commit
 .env
 .env.*
 !.env.example
+production/api/.env
+
+# OS / editor
 .DS_Store
+Thumbs.db
+*.log
+
+# Build artifacts
 dist/
 build/
 coverage/
+
+# Cursor
+.cursor/

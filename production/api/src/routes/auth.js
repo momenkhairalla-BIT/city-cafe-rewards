@@ -111,6 +111,12 @@ router.post('/register', async (req, res, next) => {
     });
   } catch (err) {
     if (err.code === '23505') return res.status(409).json({ error: 'Username or email already exists' });
+    if (!process.env.DATABASE_URL?.trim()) {
+      return res.status(503).json({ error: 'Database unavailable — DATABASE_URL not set' });
+    }
+    if (['ECONNREFUSED', 'ENOTFOUND', '57P01', 'ETIMEDOUT'].includes(err.code)) {
+      return res.status(503).json({ error: 'Database unavailable' });
+    }
     next(err);
   }
 });
@@ -135,7 +141,7 @@ router.post('/login', async (req, res, next) => {
     const valid = await verifyPassword(password, user.password_hash);
     if (!valid) return res.status(401).json({ error: 'Invalid credentials' });
 
-    if (user.password_hash.startsWith('DEMO:')) {
+    if (user.password_hash?.startsWith('DEMO:')) {
       await upgradeLegacyPassword(pool, user.id, password);
     }
 
@@ -150,6 +156,12 @@ router.post('/login', async (req, res, next) => {
 
     res.json({ data: authResponse(user, memberCode, token) });
   } catch (err) {
+    if (!process.env.DATABASE_URL?.trim()) {
+      return res.status(503).json({ error: 'Database unavailable — DATABASE_URL not set' });
+    }
+    if (['ECONNREFUSED', 'ENOTFOUND', '57P01', 'ETIMEDOUT'].includes(err.code)) {
+      return res.status(503).json({ error: 'Database unavailable' });
+    }
     next(err);
   }
 });

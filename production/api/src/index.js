@@ -3,7 +3,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { pool } from './db/pool.js';
+import { pool, checkDatabaseConnection, isDatabaseConfigured } from './db/pool.js';
 import authRoutes from './routes/auth.js';
 import menuRoutes from './routes/menu.js';
 import studentsRoutes from './routes/students.js';
@@ -35,12 +35,26 @@ app.use(express.json({ limit: '10mb' }));
 app.use('/js', express.static(path.join(prototypeRoot, 'js')));
 
 app.get('/health', async (_req, res) => {
-  try {
-    await pool.query('SELECT 1');
-    res.json({ status: 'ok', service: 'city-cafe-api', database: 'connected', auth: 'jwt' });
-  } catch {
-    res.status(503).json({ status: 'error', service: 'city-cafe-api', database: 'disconnected' });
+  if (!isDatabaseConfigured()) {
+    return res.status(503).json({
+      status: 'error',
+      service: 'city-cafe-api',
+      database: 'disconnected',
+      reason: 'DATABASE_URL not set',
+      auth: 'jwt',
+    });
   }
+  const db = await checkDatabaseConnection();
+  if (!db.ok) {
+    return res.status(503).json({
+      status: 'error',
+      service: 'city-cafe-api',
+      database: 'disconnected',
+      reason: db.reason,
+      auth: 'jwt',
+    });
+  }
+  res.json({ status: 'ok', service: 'city-cafe-api', database: 'connected', auth: 'jwt' });
 });
 
 app.use('/api/auth', authRoutes);
