@@ -883,6 +883,45 @@
     .menu-admin-badges { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 4px; }
     .menu-admin-badge { font-size: 0.65rem; padding: 2px 6px; border-radius: 4px; background: var(--soft-pink); color: var(--pink); font-weight: 600; }
     .menu-admin-row.inactive { opacity: 0.55; }
+
+    /* Phase 5 — Demo polish */
+    .login-card .login-footer { margin-top: 20px; padding-top: 16px; border-top: 1px solid #eee; text-align: center; }
+    .login-card .demo-section-label { font-size: 0.78rem; font-weight: 700; color: var(--black); text-transform: uppercase; letter-spacing: 0.05em; margin: 16px 0 8px; }
+    .demo-login-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+    .demo-login-grid button { padding: 10px 8px; line-height: 1.3; }
+    .empty-state { text-align: center; padding: 32px 16px; color: #888; }
+    .empty-state p { margin: 0; font-size: 0.9rem; }
+    .empty-state .empty-icon { font-size: 2rem; margin-bottom: 8px; opacity: 0.6; }
+    .demo-guide-section { margin-bottom: 24px; }
+    .demo-guide-section h3 { color: var(--black); font-size: 1rem; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+    .demo-guide-section ol { margin: 0; padding-left: 20px; color: #444; line-height: 1.7; font-size: 0.9rem; }
+    .demo-guide-section li { margin-bottom: 4px; }
+    .demo-guide-tip { background: var(--soft-pink); border-left: 3px solid var(--pink); padding: 10px 14px; border-radius: 0 8px 8px 0; font-size: 0.85rem; color: #555; margin-top: 12px; }
+    .demo-account-pill { display: inline-block; background: #f5f5f5; padding: 2px 8px; border-radius: 4px; font-family: monospace; font-size: 0.82rem; }
+    .insights-card { background: linear-gradient(135deg, var(--soft-pink) 0%, #fff 60%); border: 1px solid rgba(233,30,140,0.15); border-radius: 12px; padding: 20px; margin-bottom: 24px; }
+    .insights-card h3 { color: var(--black); margin-bottom: 12px; font-size: 1.05rem; }
+    .insights-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+    .insight-item { background: rgba(255,255,255,0.85); padding: 12px; border-radius: 8px; }
+    .insight-item .label { font-size: 0.75rem; color: #888; text-transform: uppercase; letter-spacing: 0.04em; }
+    .insight-item .value { font-size: 1rem; font-weight: 700; color: var(--black); margin-top: 4px; }
+    .status-panel { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; }
+    .status-item { padding: 12px; background: #fafafa; border-radius: 8px; border: 1px solid #eee; }
+    .status-item .label { font-size: 0.75rem; color: #888; }
+    .status-item .value { font-weight: 700; font-size: 0.9rem; margin-top: 4px; }
+    .status-ok { color: #2e7d32; }
+    .status-warn { color: #e65100; }
+    .status-off { color: #c62828; }
+    .limitations-list { font-size: 0.88rem; color: #555; line-height: 1.65; padding-left: 18px; }
+    .limitations-list li { margin-bottom: 6px; }
+    .demo-warning-box { background: #fff8e1; border: 1px solid #ffe082; border-radius: 8px; padding: 12px 16px; font-size: 0.85rem; color: #5d4037; margin-bottom: 16px; }
+    .export-btn-card p.helper { font-size: 0.75rem; color: #888; margin-top: 4px; }
+    .pos-help-btn { background: transparent; border: 1px solid rgba(255,255,255,0.3); color: #fff; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 0.8rem; }
+    .pos-help-btn:hover { background: rgba(255,255,255,0.1); }
+    .receipt-print-area { padding: 4px 0; }
+    .modal.receipt-modal .modal { max-width: 440px; }
+    .kpi-grid.compact { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; }
+    .kpi-grid.compact .kpi-card { padding: 14px; }
+    .kpi-grid.compact .kpi-value { font-size: 1.2rem; }
   </style>
 </head>
 <body>
@@ -911,14 +950,17 @@
     <div style="text-align:center;margin:20px 0 12px">
       <button type="button" class="auth-link" onclick="showRegisterTypeScreen()">Register New Member</button>
     </div>
-    <p style="font-size:0.85rem;color:#666;margin-top:8px">Demo quick login:</p>
+    <p class="demo-section-label">Quick demo login</p>
     <div class="demo-login-grid">
       <button type="button" class="btn btn-secondary btn-sm" onclick="demoLogin('admin','admin123')">Login as Admin</button>
       <button type="button" class="btn btn-secondary btn-sm" onclick="demoLogin('staff','staff123')">Login as Staff</button>
       <button type="button" class="btn btn-secondary btn-sm" onclick="demoLogin('CU2024001','demo123')">Login as City Student</button>
       <button type="button" class="btn btn-secondary btn-sm" onclick="demoLogin('general001','demo123')">Login as General Customer</button>
     </div>
-    <p class="login-note">Demo accounts for testing. Production uses secure JWT sessions.</p>
+    <p class="login-note">Demo accounts for merchant presentation. Production uses secure JWT sessions.</p>
+    <div class="login-footer">
+      <button type="button" class="auth-link" onclick="showDemoGuideModal()">📖 Demo Guide — How to Use</button>
+    </div>
   </div>
 </div>
 
@@ -1058,9 +1100,10 @@
       <button class="sidebar-item" data-tab="students">Members</button>
       <button class="sidebar-item" data-tab="offers">Offers &amp; Promotions</button>
       <button class="sidebar-item" data-tab="transactions">Transactions</button>
-      <button class="sidebar-item" data-tab="menu">Menu &amp; Rewards</button>
+      <button class="sidebar-item" data-tab="menu">Menu Management</button>
+      <button class="sidebar-item" data-tab="demoguide">Demo Guide</button>
       <button class="sidebar-item" data-tab="sop">SOP</button>
-      <button class="sidebar-item" data-tab="settings">Prototype Settings</button>
+      <button class="sidebar-item" data-tab="settings">Settings &amp; Export</button>
     </nav>
   </aside>
   <main class="admin-main">
@@ -1078,6 +1121,9 @@
 
 const STORAGE_KEY = 'cityCafeRewards';
 const STAMP_GOAL = 10;
+const APP_VERSION = 'v1.5-demo-ready';
+
+window._systemStatus = { api: 'checking', db: 'unknown', env: 'demo', lastSync: null, version: APP_VERSION };
 
 const DEFAULT_MENU = [
   { id: 'latte', name: 'Latte', price: 8, category: 'Coffee', active: true },
@@ -1709,6 +1755,9 @@ async function syncFromApi() {
     };
     apiEnabled = true;
     updateApiBadge('live');
+    window._systemStatus.lastSync = new Date().toISOString();
+    window._systemStatus.api = 'online';
+    window._systemStatus.db = 'connected';
     return true;
   } catch (err) {
     console.warn('API sync failed:', err);
@@ -1752,6 +1801,137 @@ function toast(msg, type = 'info') {
   document.getElementById('toast-container').appendChild(el);
   setTimeout(() => el.remove(), 3500);
 }
+
+function friendlyApiError(err) {
+  const msg = (err?.message || String(err || '')).toLowerCase();
+  if (msg.includes('fetch') || msg.includes('network') || msg.includes('failed to fetch')) {
+    return 'Unable to connect to server. Please try again.';
+  }
+  if (msg.includes('member not found') || (msg.includes('404') && msg.includes('member'))) {
+    return 'Member not found. Please check the QR/barcode or phone number.';
+  }
+  if (msg.includes('too large') || msg.includes('500 kb')) {
+    return 'Image is too large. Please upload an image under 500 KB.';
+  }
+  if (msg.includes('student') && msg.includes('offer')) {
+    return 'This offer is only available for City University students.';
+  }
+  if (msg.includes('database unavailable') || msg.includes('503')) {
+    return 'Service temporarily unavailable. Please try again in a moment.';
+  }
+  if (msg.includes('invalid credentials') || msg.includes('401')) {
+    return 'Invalid username or password. Please try again.';
+  }
+  if (msg.includes('api error')) {
+    return 'Unable to connect to server. Please try again.';
+  }
+  return err?.message || 'Something went wrong. Please try again.';
+}
+
+async function refreshSystemStatus() {
+  try {
+    const res = await fetch(`${API_URL}/health`);
+    const data = await res.json().catch(() => ({}));
+    window._systemStatus.api = res.ok ? 'online' : 'offline';
+    window._systemStatus.db = data.database === 'connected' ? 'connected' : 'disconnected';
+    if (data.version) window._systemStatus.version = data.version;
+    window._systemStatus.env = data.database === 'connected' ? 'production-api' : 'offline';
+  } catch {
+    window._systemStatus.api = 'offline';
+    window._systemStatus.db = 'unknown';
+    window._systemStatus.env = 'offline';
+  }
+  return window._systemStatus;
+}
+
+function renderSystemStatusPanel() {
+  const s = window._systemStatus || {};
+  const apiClass = s.api === 'online' ? 'status-ok' : s.api === 'checking' ? 'status-warn' : 'status-off';
+  const dbClass = s.db === 'connected' ? 'status-ok' : 'status-off';
+  const lastSync = s.lastSync ? formatDate(s.lastSync) : 'Not synced yet';
+  return `
+    <div class="settings-card">
+      <h3>System Status</h3>
+      <p style="font-size:0.85rem;color:#888;margin-bottom:12px">Live connection status for merchant demo readiness.</p>
+      <div class="status-panel">
+        <div class="status-item"><div class="label">API Status</div><div class="value ${apiClass}">${s.api === 'online' ? '● Online' : s.api === 'checking' ? '● Checking…' : '● Offline'}</div></div>
+        <div class="status-item"><div class="label">Database</div><div class="value ${dbClass}">${s.db === 'connected' ? '● Connected' : s.db === 'unknown' ? '● Unknown' : '● Disconnected'}</div></div>
+        <div class="status-item"><div class="label">Environment</div><div class="value">${s.env === 'production-api' ? 'Live API + Neon' : s.env === 'offline' ? 'Offline / localStorage' : 'Demo mode'}</div></div>
+        <div class="status-item"><div class="label">Last Data Sync</div><div class="value" style="font-size:0.82rem">${lastSync}</div></div>
+        <div class="status-item"><div class="label">App Version</div><div class="value">${s.version || APP_VERSION}</div></div>
+      </div>
+      ${s.api !== 'online' ? '<p class="demo-guide-tip" style="margin-top:12px">API is offline. The app will use local demo data. Start the API server or check Render deployment.</p>' : ''}
+    </div>`;
+}
+
+function renderDemoGuide() {
+  return `
+    <div class="admin-header"><h1>Demo Guide</h1><p>Step-by-step presentation flow for City University Malaysia café merchants</p></div>
+    <div class="demo-guide-tip"><strong>Tip:</strong> Use the quick-login buttons on the login screen, or the accounts below. Allow ~30 seconds if Render has been idle (free tier wake-up).</div>
+
+    <div class="demo-guide-section">
+      <h3>🧾 Staff POS Demo Flow</h3>
+      <ol>
+        <li>Login as <span class="demo-account-pill">staff / staff123</span></li>
+        <li>Open <strong>Scan Member</strong> → enter <span class="demo-account-pill">CU2024001</span> (or scan barcode)</li>
+        <li>Go to <strong>POS / New Sale</strong> → add <strong>Latte</strong> and <strong>Croissant</strong></li>
+        <li>Select a <strong>student offer</strong> (e.g. 10% Student Drink Discount)</li>
+        <li>Choose payment method → <strong>Confirm Payment &amp; Record Sale</strong></li>
+        <li>Show the <strong>receipt</strong> with points, stamps, and discount</li>
+        <li>Switch to <strong>Admin</strong> → Transactions to show the recorded sale</li>
+      </ol>
+    </div>
+
+    <div class="demo-guide-section">
+      <h3>🎓 City University Student Demo Flow</h3>
+      <ol>
+        <li>Login as <span class="demo-account-pill">CU2024001 / demo123</span> (also works: <span class="demo-account-pill">CU-M-2024001</span>)</li>
+        <li>View <strong>Home</strong> — points balance and stamp progress</li>
+        <li>Open <strong>QR / Barcode</strong> — show scannable member ID</li>
+        <li>View <strong>History</strong> — past purchases and rewards</li>
+        <li>View <strong>Rewards</strong> — voucher redemption options</li>
+      </ol>
+    </div>
+
+    <div class="demo-guide-section">
+      <h3>☕ General Customer Demo Flow</h3>
+      <ol>
+        <li>Login as <span class="demo-account-pill">general001 / demo123</span> or <span class="demo-account-pill">60123456789 / demo123</span></li>
+        <li>Alternatively: <strong>Register New Member</strong> → General Customer with phone number</li>
+        <li>Staff scans by phone <span class="demo-account-pill">60123456789</span> or member code <span class="demo-account-pill">GC-M-001</span></li>
+        <li>Record a purchase at POS — points and stamps still apply</li>
+        <li>Confirm <strong>no student-only offers</strong> appear for general customers</li>
+      </ol>
+    </div>
+
+    <div class="demo-guide-section">
+      <h3>💻 Admin Dashboard Demo Flow</h3>
+      <ol>
+        <li>Login as <span class="demo-account-pill">admin / admin123</span></li>
+        <li><strong>Overview</strong> — KPIs, merchant insights, loyalty impact</li>
+        <li><strong>Transactions</strong> — full sales history</li>
+        <li><strong>Menu Management</strong> — edit product, upload image (PNG/JPG, max 500 KB)</li>
+        <li><strong>Offers &amp; Promotions</strong> — student-only offer rules</li>
+        <li><strong>Settings &amp; Export</strong> — download CSV reports for Excel</li>
+      </ol>
+    </div>
+
+    <div class="settings-card">
+      <h3>Demo Accounts Reference</h3>
+      <table class="data-table" style="font-size:0.85rem">
+        <tr><th>Role</th><th>Login</th><th>Password</th></tr>
+        <tr><td>Admin</td><td>admin</td><td>admin123</td></tr>
+        <tr><td>Staff</td><td>staff</td><td>staff123</td></tr>
+        <tr><td>City Student</td><td>CU2024001 or CU-M-2024001</td><td>demo123</td></tr>
+        <tr><td>General Customer</td><td>general001 or 60123456789</td><td>demo123</td></tr>
+      </table>
+    </div>`;
+}
+
+window.showDemoGuideModal = function() {
+  showModal('Demo Guide — City Café Rewards', renderDemoGuide().replace(/<div class="admin-header">[\s\S]*?<\/div>/, ''), `
+    <button class="btn btn-primary btn-sm" onclick="closeModal()">Close</button>`);
+};
 
 function showModal(title, bodyHtml, actionsHtml) {
   const root = document.getElementById('modal-root');
@@ -2101,12 +2281,12 @@ window.staffScanStudent = async function() {
       renderStaff();
       return;
     } catch (e) {
-      toast(e.message || 'Member not found', 'error');
+      toast(friendlyApiError(e), 'error');
       return;
     }
   }
   const member = findMemberByQuery(code);
-  if (!member) { toast('Member not found', 'error'); return; }
+  if (!member) { toast('Member not found. Please check the QR/barcode or phone number.', 'error'); return; }
   const scanKey = memberScanKey(member);
   saveUiState({ ...loadUiState(), staffScannedId: scanKey });
   toast('Member loaded: ' + member.name, 'success');
@@ -2202,7 +2382,7 @@ function renderStaffPOS() {
       <div class="pos-badges">
         <span class="pos-badge">Counter Mode</span>
         <span class="pos-badge">Live POS Demo</span>
-        <span class="pos-badge muted">Shared Database: localStorage</span>
+        <button type="button" class="pos-help-btn" onclick="showDemoGuideModal()">? Demo Help</button>
       </div>
     </div>
     <div class="pos-layout">
@@ -2698,6 +2878,7 @@ function renderAdmin() {
     case 'offers': content.innerHTML = renderAdminOffers(); break;
     case 'transactions': content.innerHTML = renderAdminTransactions(); break;
     case 'menu': content.innerHTML = renderAdminMenu(); break;
+    case 'demoguide': content.innerHTML = renderDemoGuide(); break;
     case 'sop': content.innerHTML = renderAdminSOP(); break;
     case 'settings': content.innerHTML = renderAdminSettings(); break;
   }
@@ -2761,25 +2942,40 @@ function renderAdminOverview() {
   const studentRevenue = purchases.filter(t => t.customerType === 'city_student' || (t.studentId && t.studentId.startsWith('CU'))).reduce((s, t) => s + getTxTotal(t), 0);
   const generalRevenue = purchases.filter(t => t.customerType === 'general_customer' || (t.memberCode && t.memberCode.startsWith('GC'))).reduce((s, t) => s + getTxTotal(t), 0);
   const studentDiscount = purchases.reduce((s, t) => s + (t.discount || 0), 0);
+  const todayPurchases = purchases.filter(t => isToday(getTxDate(t)));
+  const todayRevenue = todayPurchases.reduce((s, t) => s + getTxTotal(t), 0);
+  const todayOrders = todayPurchases.length;
+  const topProductName = topProducts[0] ? topProducts[0][0] : '—';
+  const topProductQty = topProducts[0] ? topProducts[0][1] : 0;
+  const mostActive = [...data.students].sort((a, b) => (b.totalPurchases || 0) - (a.totalPurchases || 0))[0];
+  const closeToFreeDrink = data.students.filter(s => s.currentStampProgress >= 7 && s.currentStampProgress <= 9).length;
 
   return `
-    <div class="admin-header"><h1>Overview</h1><p>City Café Rewards sales &amp; loyalty analytics</p></div>
-    <div class="kpi-grid">
-      <div class="kpi-card"><div class="kpi-value">${data.students.length}</div><div class="kpi-label">Total Members</div></div>
-      <div class="kpi-card"><div class="kpi-value">${cityStudents}</div><div class="kpi-label">City Students</div></div>
-      <div class="kpi-card"><div class="kpi-value">${generalCustomers}</div><div class="kpi-label">General Customers</div></div>
-      <div class="kpi-card"><div class="kpi-value">${activeMembers}</div><div class="kpi-label">Active Members</div></div>
+    <div class="admin-header"><h1>Merchant Overview</h1><p>City Café Rewards — sales, loyalty, and member analytics · ${APP_VERSION}</p></div>
+    ${renderSystemStatusPanel()}
+    <div class="insights-card">
+      <h3>Merchant Insights</h3>
+      <div class="insights-grid">
+        <div class="insight-item"><div class="label">Most Popular Item</div><div class="value">${topProductName}${topProductQty ? ` (${topProductQty} sold)` : ''}</div></div>
+        <div class="insight-item"><div class="label">Most Active Member</div><div class="value">${mostActive ? mostActive.name : '—'}${mostActive?.totalPurchases ? ` · ${mostActive.totalPurchases} visits` : ''}</div></div>
+        <div class="insight-item"><div class="label">Close to Free Drink</div><div class="value">${closeToFreeDrink} member${closeToFreeDrink !== 1 ? 's' : ''} (7–9 stamps)</div></div>
+        <div class="insight-item"><div class="label">Loyalty Impact</div><div class="value">${totalPoints.toLocaleString()} pts issued · ${totalRedemptions} rewards redeemed</div></div>
+      </div>
+    </div>
+    <div class="kpi-grid compact">
       <div class="kpi-card"><div class="kpi-value">${formatRM(totalRevenue)}</div><div class="kpi-label">Total Revenue</div></div>
+      <div class="kpi-card"><div class="kpi-value">${formatRM(todayRevenue)}</div><div class="kpi-label">Today Revenue</div></div>
       <div class="kpi-card"><div class="kpi-value">${totalOrders}</div><div class="kpi-label">Total Orders</div></div>
-      <div class="kpi-card"><div class="kpi-value">${formatRM(studentDiscount)}</div><div class="kpi-label">Student Discount Given</div></div>
-      <div class="kpi-card"><div class="kpi-value">${formatRM(studentRevenue)}</div><div class="kpi-label">Student Revenue</div></div>
-      <div class="kpi-card"><div class="kpi-value">${formatRM(generalRevenue)}</div><div class="kpi-label">General Customer Revenue</div></div>
+      <div class="kpi-card"><div class="kpi-value">${todayOrders}</div><div class="kpi-label">Today Orders</div></div>
       <div class="kpi-card"><div class="kpi-value">${formatRM(aov)}</div><div class="kpi-label">Average Order Value</div></div>
-      <div class="kpi-card"><div class="kpi-value">${totalPoints}</div><div class="kpi-label">Total Points Issued</div></div>
+      <div class="kpi-card"><div class="kpi-value">${data.students.length}</div><div class="kpi-label">Total Members</div></div>
+      <div class="kpi-card"><div class="kpi-value">${cityStudents}</div><div class="kpi-label">City University Students</div></div>
+      <div class="kpi-card"><div class="kpi-value">${generalCustomers}</div><div class="kpi-label">General Customers</div></div>
+      <div class="kpi-card"><div class="kpi-value">${totalPoints.toLocaleString()}</div><div class="kpi-label">Points Issued</div></div>
       <div class="kpi-card"><div class="kpi-value">${totalRedemptions}</div><div class="kpi-label">Rewards Redeemed</div></div>
+      <div class="kpi-card"><div class="kpi-value">${formatRM(studentDiscount)}</div><div class="kpi-label">Student Discounts Given</div></div>
       <div class="kpi-card"><div class="kpi-value">${freeDrinksIssued}</div><div class="kpi-label">Free Drinks Issued</div></div>
-      <div class="kpi-card"><div class="kpi-value">${activeStudents}</div><div class="kpi-label">Active Students</div></div>
-      <div class="kpi-card"><div class="kpi-value">${repeatCustomers}</div><div class="kpi-label">Repeat Customers</div></div>
+      <div class="kpi-card"><div class="kpi-value">${topProductName}</div><div class="kpi-label">Top Selling Product</div></div>
     </div>
     <div class="charts-grid">
       <div class="chart-section">
@@ -2788,7 +2984,7 @@ function renderAdminOverview() {
           <div class="bar-col"><div class="bar-value">${count}</div>
           <div class="bar" style="height:${(count / maxProd) * 140}px"></div>
           <div class="bar-label">${name}</div></div>`).join('')}</div>` :
-          '<div class="empty-state"><p>No sales data yet</p></div>'}
+          '<div class="empty-state"><div class="empty-icon">📊</div><p>No sales data yet — record a POS sale to see charts</p></div>'}
       </div>
       <div class="chart-section">
         <h3>Revenue by Category</h3>
@@ -3610,87 +3806,96 @@ function renderAdminSOP() {
 
 function renderAdminSettings() {
   return `
-    <div class="admin-header"><h1>Prototype Settings</h1><p>Demo data management &amp; export center</p></div>
+    <div class="admin-header"><h1>Settings &amp; Export</h1><p>Demo controls, reports, and system information · ${APP_VERSION}</p></div>
+    ${renderSystemStatusPanel()}
     <div class="settings-card">
-      <h3>Data Management</h3>
-      <p>Reset or reload demo data for presentations.</p>
-      <button class="btn btn-primary btn-sm" style="margin-right:8px" onclick="resetAllData()">Reset All Demo Data</button>
-      <button class="btn btn-outline btn-sm" style="margin-right:8px" onclick="clearTransactions()">Clear Transaction History</button>
-      <button class="btn btn-secondary btn-sm" onclick="loadSampleTransactions()">Load Sample Transactions</button>
+      <h3>Demo Data Controls</h3>
+      <div class="demo-warning-box"><strong>⚠ Demo/testing only.</strong> These actions affect local demo data. Use before a fresh merchant presentation.</div>
+      <button class="btn btn-primary btn-sm" style="margin-right:8px;margin-bottom:8px" onclick="resetAllData()">Reset All Demo Data</button>
+      <button class="btn btn-outline btn-sm" style="margin-right:8px;margin-bottom:8px" onclick="clearTransactions()">Clear Test Transactions</button>
+      <button class="btn btn-secondary btn-sm" style="margin-bottom:8px" onclick="loadSampleTransactions()">Load Sample Demo Transactions</button>
+      <p style="font-size:0.82rem;color:#888;margin-top:8px">All actions require confirmation. Backend data on Neon is not bulk-deleted — these controls primarily reset the local presentation cache.</p>
     </div>
     <div class="settings-card">
       <h3>Export Center</h3>
-      <p>Download CSV files compatible with Microsoft Excel. All exports include UTF-8 BOM for proper character display.</p>
+      <p>Download reports for merchant review. <strong>CSV files can be opened directly in Microsoft Excel.</strong></p>
       <div class="export-grid">
         <div class="export-btn-card" onclick="exportSalesCSV()">
-          <h4>📊 Sales Transactions</h4><p>city-cafe-sales-transactions.csv</p>
+          <h4>📊 Export Sales CSV</h4><p>city-cafe-sales-transactions.csv</p>
+          <p class="helper">All POS sales with items, totals, and payment method</p>
         </div>
         <div class="export-btn-card" onclick="exportStudentsCSV()">
-          <h4>👥 Members</h4><p>city-cafe-members.csv</p>
+          <h4>👥 Export Members CSV</h4><p>city-cafe-members.csv</p>
+          <p class="helper">Students and general customers with loyalty status</p>
         </div>
         <div class="export-btn-card" onclick="exportMenuCSV()">
-          <h4>🍽 Menu</h4><p>city-cafe-menu.csv</p>
+          <h4>🍽 Export Menu CSV</h4><p>city-cafe-menu.csv</p>
+          <p class="helper">Products with Has Image flag (no image file data)</p>
         </div>
         <div class="export-btn-card" onclick="exportOffersCSV()">
-          <h4>🏷 Offers</h4><p>city-cafe-offers.csv</p>
+          <h4>🏷 Export Offers CSV</h4><p>city-cafe-offers.csv</p>
+          <p class="helper">Student and member promotion rules</p>
         </div>
         <div class="export-btn-card" onclick="exportRedemptionsCSV()">
-          <h4>🎁 Redemptions</h4><p>city-cafe-redemptions.csv</p>
+          <h4>🎁 Export Redemptions CSV</h4><p>city-cafe-redemptions.csv</p>
+          <p class="helper">Points and free drink redemptions</p>
         </div>
         <div class="export-btn-card" onclick="exportDailySummaryCSV()">
-          <h4>📅 Daily Summary</h4><p>city-cafe-daily-summary.csv</p>
+          <h4>📅 Export Daily Summary CSV</h4><p>city-cafe-daily-summary.csv</p>
+          <p class="helper">Revenue and orders grouped by date</p>
         </div>
         <div class="export-btn-card" onclick="exportBackupJSON()">
-          <h4>💾 Full Backup JSON</h4><p>city-cafe-backup.json</p>
+          <h4>💾 Export Full Backup JSON</h4><p>city-cafe-backup.json</p>
+          <p class="helper">Complete demo data including menu images</p>
         </div>
         <div class="export-btn-card" onclick="importBackupJSON()">
-          <h4>📂 Import Backup JSON</h4><p>Restore prototype data from file</p>
+          <h4>📂 Import Backup JSON</h4><p>Restore from backup file</p>
+          <p class="helper">For demo recovery only</p>
         </div>
       </div>
     </div>
     <div class="settings-card">
-      <h3>Authentication</h3>
-      <p>Secure login enabled: <strong>bcrypt password hashing</strong> + <strong>JWT sessions</strong>.</p>
-      <p style="font-size:0.85rem;color:#666">Demo accounts: admin/admin123 · staff/staff123 · CU2024001/demo123 · general001/demo123</p>
-      <p style="font-size:0.85rem;color:#666">Set <code>JWT_SECRET</code> in production/api/.env before deployment.</p>
-    </div>
-    <div class="settings-card">
-      <h3>About This Prototype</h3>
-      <p>This prototype uses localStorage to simulate a real shared database.</p>
-    </div>
-    <div class="settings-card">
-      <h3>Future Development</h3>
-      <ul class="future-list">
-        <li>Connect to real student database</li>
-        <li>Connect to POS system</li>
-        <li>Add staff login</li>
-        <li>Add admin authentication</li>
-        <li>Add QR scanner camera support</li>
-        <li>Add reporting dashboard</li>
-        <li>Add API and backend database</li>
+      <h3>Known Limitations</h3>
+      <ul class="limitations-list">
+        <li>Payment gateway is not integrated yet — cash/card/e-wallet recorded manually at counter.</li>
+        <li>Real bank/e-wallet payment confirmation is not connected yet.</li>
+        <li>Real camera QR scanning is not integrated yet — use keyboard or USB barcode scanner input.</li>
+        <li>Hardware barcode scanners work as keyboard input (scan into the member field).</li>
+        <li>Product images are stored as Base64 demo storage for now (not CDN/cloud storage).</li>
+        <li>Free Render instance may sleep after inactivity (~30s wake-up delay).</li>
+        <li>Production authentication should be hardened before real public launch.</li>
+        <li>This is a demo / Phase 1–5 production build — not a final enterprise release.</li>
       </ul>
+    </div>
+    <div class="settings-card">
+      <h3>Authentication</h3>
+      <p>Secure login: <strong>bcrypt password hashing</strong> + <strong>JWT sessions</strong>.</p>
+      <p style="font-size:0.85rem;color:#666;margin-top:8px">Demo: admin/admin123 · staff/staff123 · CU2024001/demo123 · general001/demo123</p>
     </div>`;
 }
 
 window.resetAllData = function() {
-  if (!confirm('Reset all demo data? This cannot be undone.')) return;
+  if (!confirm('Reset all demo data?\n\nThis action is for demo/testing only. Local presentation data will be cleared.')) return;
+  if (!confirm('Are you sure? This cannot be undone.')) return;
   localStorage.removeItem(STORAGE_KEY);
   posCart = []; posDiscount = 0; posCashReceived = 0; heldSale = null; pendingRedeemMsg = null;
   loadData();
-  toast('All data reset', 'success');
+  toast('Demo data has been reset', 'success');
   if (currentRole) showView(currentRole);
 };
 
 window.clearTransactions = function() {
+  if (!confirm('Clear all test transactions?\n\nThis action is for demo/testing only.')) return;
   const data = loadData();
   data.transactions = [];
   data.students.forEach(s => { s.transactionHistory = []; });
   saveData(data);
-  toast('Transactions cleared', 'success');
+  toast('Test transactions cleared', 'success');
   renderAdmin();
 };
 
 window.loadSampleTransactions = function() {
+  if (!confirm('Load sample demo transactions?\n\nThis action is for demo/testing only. Sample sales will be added.')) return;
   const data = loadData();
   const samples = [
     { sid: 'CU2024001', items: [{ itemName: 'Latte', category: 'Coffee', quantity: 1, unitPrice: 8, lineTotal: 8 }], total: 8 },
@@ -3726,9 +3931,10 @@ window.loadSampleTransactions = function() {
 /* Init */
 async function initApp() {
   updateApiBadge('syncing');
+  await refreshSystemStatus();
   if (window.location.protocol === 'file:') {
     updateApiBadge('offline');
-    toast('Open http://localhost:3001 in browser (not the file directly) for live database', 'error');
+    toast('Open http://localhost:3001 in your browser for the live database connection.', 'error');
     loadData();
     return;
   }
@@ -3736,12 +3942,14 @@ async function initApp() {
   if (!online) {
     loadData();
     updateApiBadge('offline');
+    await refreshSystemStatus();
     return;
   }
+  await refreshSystemStatus();
   const session = typeof getAuthSession === 'function' ? getAuthSession() : null;
   if (session?.token) {
     const synced = await syncFromApi();
-    if (synced) toast('Connected to Neon production database', 'success');
+    if (synced) toast('Connected to live database', 'success');
   } else {
     apiEnabled = false;
     updateApiBadge('live');

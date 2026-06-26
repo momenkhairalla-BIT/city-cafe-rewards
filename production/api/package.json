@@ -19,7 +19,8 @@
     "test:production:live": "node scripts/run-production-live.js",
     "test:phase2": "node scripts/test-phase2.js",
     "test:phase3": "node scripts/test-phase3.js",
-    "test:phase4": "node scripts/test-phase4.js"
+    "test:phase4": "node scripts/test-phase4.js",
+    "test:phase5": "node scripts/test-phase5.js"
   },
   "engines": {
     "node": ">=20"

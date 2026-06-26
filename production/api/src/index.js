@@ -54,7 +54,7 @@ app.get('/health', async (_req, res) => {
       auth: 'jwt',
     });
   }
-  res.json({ status: 'ok', service: 'city-cafe-api', database: 'connected', auth: 'jwt' });
+  res.json({ status: 'ok', service: 'city-cafe-api', database: 'connected', auth: 'jwt', version: 'v1.5-demo-ready' });
 });
 
 app.use('/api/auth', authRoutes);

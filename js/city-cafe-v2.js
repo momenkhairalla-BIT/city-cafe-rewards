@@ -29,6 +29,9 @@
 
   function friendlyAuthError(err) {
     const msg = (err?.message || String(err || '')).toLowerCase();
+    if (msg.includes('fetch') || msg.includes('network') || msg.includes('failed to fetch')) {
+      return 'Unable to connect to server. Please try again.';
+    }
     if (msg.includes('database unavailable') || msg.includes('503')) {
       return 'Service temporarily unavailable. Please try again in a moment.';
     }
