@@ -188,7 +188,7 @@
       payload.studentId = studentId.toUpperCase();
       payload.programme = document.getElementById('adm-programme')?.value?.trim() || '';
     }
-    if (apiEnabled) {
+    if (typeof isApiAvailable === 'function' ? isApiAvailable() : apiEnabled) {
       try {
         await apiPost('/api/members', payload);
         await syncFromApi();
@@ -314,7 +314,7 @@
       setLoginError('Please enter your username and password.');
       return;
     }
-    if (apiEnabled) {
+    if (typeof isApiAvailable === 'function' ? isApiAvailable() : apiEnabled) {
       try {
         const res = await apiPost('/api/auth/login', { username: username.trim(), password });
         const d = res.data;
@@ -430,7 +430,7 @@
       };
     }
 
-    if (apiEnabled) {
+    if (typeof isApiAvailable === 'function' ? isApiAvailable() : apiEnabled) {
       try {
         const res = await apiPost('/api/auth/register', body);
         const d = res.data;

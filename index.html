@@ -1498,8 +1498,14 @@ const API_URL = window.location.protocol.startsWith('http')
   : 'http://localhost:3001';
 const UI_STATE_KEY = 'cityCafeUiState';
 let apiEnabled = false;
+let apiAvailable = false;
 let dataCache = null;
 let apiSyncing = false;
+
+/** Live API reachable (health check) — distinct from apiEnabled (logged in + synced) */
+window.isApiAvailable = function () {
+  return apiAvailable && window.location.protocol !== 'file:';
+};
 
 function nameFromEmail(email) {
   const local = (email || '').split('@')[0];
@@ -2192,11 +2198,12 @@ window.switchCustomer = async function(id) {
    STAFF COUNTER APP
    ============================================================ */
 
-document.getElementById('staff-tabs').addEventListener('click', e => {
+document.getElementById('staff-tabs').addEventListener('click', async e => {
   const btn = e.target.closest('.staff-tab');
   if (!btn) return;
   staffTab = btn.dataset.tab;
   document.querySelectorAll('#staff-tabs .staff-tab').forEach(t => t.classList.toggle('active', t === btn));
+  if (staffTab === 'pos' && apiEnabled) await syncFromApi();
   renderStaff();
 });
 
@@ -2857,11 +2864,12 @@ function renderStaffTodaySummary() {
    ADMIN DASHBOARD
    ============================================================ */
 
-document.getElementById('admin-nav').addEventListener('click', e => {
+document.getElementById('admin-nav').addEventListener('click', async e => {
   const btn = e.target.closest('.sidebar-item');
   if (!btn) return;
   adminTab = btn.dataset.tab;
   document.querySelectorAll('#admin-nav .sidebar-item').forEach(n => n.classList.toggle('active', n === btn));
+  if (adminTab === 'menu' && apiEnabled) await syncFromApi();
   renderAdmin();
 });
 
@@ -3616,7 +3624,8 @@ window.previewAddMenuImage = function(input) {
   }, msg => { if (errEl) errEl.textContent = msg; input.value = ''; });
 };
 
-window.editMenuItem = function(id) {
+window.editMenuItem = async function(id) {
+  if (apiEnabled) await syncFromApi();
   const m = loadData().menu.find(x => x.id === id);
   if (!m) return;
   window._menuImageData = menuImageSrc(m);
@@ -3939,6 +3948,7 @@ async function initApp() {
     return;
   }
   const online = await checkApiHealth();
+  apiAvailable = online;
   if (!online) {
     loadData();
     updateApiBadge('offline');
@@ -3957,6 +3967,19 @@ async function initApp() {
     if (badge) badge.textContent = '● Live · Login required';
   }
 }
+
+let _focusSyncTimer;
+window.addEventListener('focus', () => {
+  clearTimeout(_focusSyncTimer);
+  _focusSyncTimer = setTimeout(async () => {
+    if (typeof getAuthSession === 'function' && getAuthSession()?.token && apiEnabled) {
+      await syncFromApi();
+      if (currentRole === 'admin' && adminTab === 'menu') renderAdmin();
+      else if (currentRole === 'staff' && staffTab === 'pos') renderStaff();
+    }
+  }, 400);
+});
+
 initApp();
 </script>
 <script src="js/city-cafe-v2.js"></script>
