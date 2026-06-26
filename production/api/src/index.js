@@ -1,9 +1,11 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { pool, checkDatabaseConnection, isDatabaseConfigured } from './db/pool.js';
+import { APP_VERSION, healthMeta } from './version.js';
 import authRoutes from './routes/auth.js';
 import menuRoutes from './routes/menu.js';
 import studentsRoutes from './routes/students.js';
@@ -26,6 +28,19 @@ const PORT = process.env.PORT || 3001;
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const prototypeRoot = path.resolve(__dirname, '../../..');
 
+function resolveIndexHtml() {
+  const candidates = [
+    path.join(prototypeRoot, 'index.html'),
+    path.resolve(__dirname, '../../../index.html'),
+  ];
+  for (const candidate of candidates) {
+    if (fs.existsSync(candidate)) return candidate;
+  }
+  return candidates[0];
+}
+
+const indexHtmlPath = resolveIndexHtml();
+
 app.set('trust proxy', 1);
 
 const corsOrigin = process.env.CORS_ORIGIN;
@@ -35,6 +50,7 @@ app.use(express.json({ limit: '10mb' }));
 app.use('/js', express.static(path.join(prototypeRoot, 'js')));
 
 app.get('/health', async (_req, res) => {
+  const meta = healthMeta();
   if (!isDatabaseConfigured()) {
     return res.status(503).json({
       status: 'error',
@@ -42,6 +58,7 @@ app.get('/health', async (_req, res) => {
       database: 'disconnected',
       reason: 'DATABASE_URL not set',
       auth: 'jwt',
+      ...meta,
     });
   }
   const db = await checkDatabaseConnection();
@@ -52,9 +69,10 @@ app.get('/health', async (_req, res) => {
       database: 'disconnected',
       reason: db.reason,
       auth: 'jwt',
+      ...meta,
     });
   }
-  res.json({ status: 'ok', service: 'city-cafe-api', database: 'connected', auth: 'jwt', version: 'v1.5-demo-ready' });
+  res.json({ status: 'ok', service: 'city-cafe-api', database: 'connected', auth: 'jwt', ...meta });
 });
 
 app.use('/api/auth', authRoutes);
@@ -73,7 +91,7 @@ api.use('/analytics', requireRole('admin'), analyticsRoutes);
 app.use('/api', api);
 
 app.get('/', (_req, res) => {
-  res.sendFile(path.join(prototypeRoot, 'index.html'));
+  res.sendFile(indexHtmlPath);
 });
 
 app.use((err, _req, res, _next) => {
@@ -82,8 +100,9 @@ app.use((err, _req, res, _next) => {
 });
 
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`City Café API running on port ${PORT}`);
+  console.log(`City Café API ${APP_VERSION} running on port ${PORT}`);
   console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`Serving UI from: ${indexHtmlPath}`);
   if (process.env.NODE_ENV !== 'production') {
     console.log(`Local: http://localhost:${PORT}`);
   }

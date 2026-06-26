@@ -88,7 +88,9 @@ async function main() {
   await test('6. Health check includes app version', async () => {
     const res = await fetch(`${BASE}/health`);
     const data = await res.json();
-    if (!data.version) throw new Error('Missing version in /health');
+    const version = data.version || data.appVersion;
+    if (!version) throw new Error('Missing version in /health');
+    if (version !== 'v1.5-demo-ready') throw new Error(`Unexpected version: ${version}`);
     if (data.database !== 'connected') throw new Error('Database not connected');
   });
 
