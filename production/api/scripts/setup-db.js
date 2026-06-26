@@ -47,6 +47,10 @@ async function main() {
     if (fs.existsSync(migration3)) {
       await runSqlFile('003_phase3_offers', migration3);
     }
+    const migration5 = path.join(dbDir, '005_menu_images.sql');
+    if (fs.existsSync(migration5)) {
+      await runSqlFile('005_menu_images', migration5);
+    }
 
     const counts = await pool.query(`
       SELECT

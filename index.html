@@ -552,8 +552,8 @@
     }
     .pos-cart-body { padding: 16px; max-height: 280px; overflow-y: auto; }
     .pos-cart-item {
-      display: grid; grid-template-columns: 1fr auto; gap: 4px 8px; padding: 10px 0;
-      border-bottom: 1px solid #f0f0f0; font-size: 0.85rem;
+      display: grid; grid-template-columns: auto 1fr auto; gap: 10px; align-items: start;
+      padding: 10px 0; border-bottom: 1px solid #f0f0f0; font-size: 0.85rem;
     }
     .pos-cart-item .pci-name { font-weight: 600; color: var(--black); }
     .pos-cart-item .pci-meta { font-size: 0.75rem; color: #888; }
@@ -864,6 +864,25 @@
     .pos-general-notice { background: #f5f5f5; border-radius: 8px; padding: 12px; margin-bottom: 12px; font-size: 0.85rem; color: #666; }
     .scan-hint { font-size: 0.8rem; color: #888; margin-bottom: 12px; }
     .menu-thumb { width: 48px; height: 48px; border-radius: 6px; object-fit: cover; background: #eee; }
+    .pp-image-placeholder {
+      flex-direction: column; gap: 4px;
+      background: linear-gradient(145deg, var(--soft-pink) 0%, #1a1a1a 120%);
+      border: 1px solid rgba(233, 30, 140, 0.25);
+    }
+    .pp-placeholder-icon { font-size: 1.6rem; line-height: 1; }
+    .pp-placeholder-label { font-size: 0.6rem; color: rgba(255,255,255,0.85); text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600; }
+    .pp-badges { display: flex; flex-wrap: wrap; gap: 4px; margin: 4px 0; min-height: 18px; }
+    .pp-badge { font-size: 0.62rem; font-weight: 700; padding: 2px 6px; border-radius: 999px; text-transform: uppercase; letter-spacing: 0.04em; }
+    .pp-badge-best { background: var(--black); color: #fff; }
+    .pp-badge-student { background: var(--pink); color: #fff; }
+    .pos-cart-thumb { width: 40px; height: 40px; border-radius: 6px; object-fit: cover; background: #f0f0f0; flex-shrink: 0; }
+    .pos-cart-thumb-ph { display: flex; align-items: center; justify-content: center; font-size: 1rem; background: linear-gradient(135deg, var(--soft-pink), #eee); border: 1px solid #eee; }
+    .menu-image-preview { margin-top: 8px; }
+    .menu-image-preview img { width: 120px; height: 120px; object-fit: cover; border-radius: 8px; border: 2px solid #eee; }
+    .menu-image-error { color: var(--pink); font-size: 0.82rem; margin-top: 6px; }
+    .menu-admin-badges { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 4px; }
+    .menu-admin-badge { font-size: 0.65rem; padding: 2px 6px; border-radius: 4px; background: var(--soft-pink); color: var(--pink); font-weight: 600; }
+    .menu-admin-row.inactive { opacity: 0.55; }
   </style>
 </head>
 <body>
@@ -1079,6 +1098,8 @@ const DEFAULT_MENU = [
 ];
 
 const MENU_CATEGORIES = ['All', 'Coffee', 'Iced Drinks', 'Food', 'Add-ons'];
+const MENU_IMAGE_MAX_BYTES = 500 * 1024;
+const MENU_IMAGE_ACCEPT = 'image/png,image/jpeg,image/jpg,image/webp';
 const PAYMENT_METHODS = ['Cash', 'Card', 'E-wallet', 'Student Wallet'];
 const CASHIER_NAME = 'Counter Staff';
 
@@ -1173,8 +1194,54 @@ function migrateMenu(menu) {
   menu.forEach(m => {
     if (!m.category) m.category = 'Coffee';
     if (m.active === undefined) m.active = true;
+    if (m.description === undefined) m.description = '';
+    if (m.imageAlt === undefined) m.imageAlt = m.name || '';
+    if (m.isStudentOfferEligible === undefined) {
+      m.isStudentOfferEligible = ['Coffee', 'Iced Drinks'].includes(m.category);
+    }
+    if (m.isBestSeller === undefined) m.isBestSeller = false;
   });
   return menu;
+}
+
+function escAttr(s) {
+  return String(s || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+}
+
+function menuImageSrc(m) {
+  if (!m) return null;
+  return m.imageData || m.imageUrl || null;
+}
+
+function menuApiId(m) {
+  if (!m) return null;
+  if (m.apiId) return m.apiId;
+  const id = String(m.id || '');
+  if (/^[0-9a-f-]{36}$/i.test(id)) return id;
+  return null;
+}
+
+function processMenuImageFile(file, onSuccess, onError) {
+  if (!file) return;
+  const allowed = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'];
+  if (!allowed.includes(file.type)) {
+    onError('Please choose a PNG, JPG, JPEG, or WEBP image.');
+    return;
+  }
+  if (file.size > MENU_IMAGE_MAX_BYTES) {
+    onError('Image is too large. Maximum size is 500 KB.');
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = e => onSuccess(e.target.result);
+  reader.onerror = () => onError('Could not read the image file.');
+  reader.readAsDataURL(file);
+}
+
+function renderMenuThumb(m, sizeClass) {
+  const src = menuImageSrc(m);
+  if (src) return `<img class="${sizeClass || 'menu-thumb'}" src="${src}" alt="${escAttr(m.imageAlt || m.name)}">`;
+  return `<span class="${sizeClass || 'menu-thumb'}" style="display:inline-flex;align-items:center;justify-content:center;background:linear-gradient(135deg,var(--soft-pink),#eee);font-size:1.2rem">🍽</span>`;
 }
 
 function migrateMembers(students) {
@@ -1418,15 +1485,19 @@ function mapStudentFromApi(s, history = []) {
 
 function mapMenuFromApi(m) {
   return {
-    id: m.slug || m.id || m.productId,
+    id: m.id || m.slug || m.productId,
+    apiId: m.id,
+    slug: m.slug || m.productId,
     name: m.name,
     price: Number(m.price),
     category: m.category,
     description: m.description || '',
-    imageData: m.imageData || m.image_data || m.imageUrl || null,
+    imageData: m.imageData || (m.image_data && String(m.image_data).startsWith('data:') ? m.image_data : null) || null,
+    imageUrl: m.imageUrl || m.image_url || null,
+    imageAlt: m.imageAlt || m.image_alt || m.name,
     active: m.isActive !== false && m.is_active !== false,
-    isStudentOfferEligible: m.isStudentOfferEligible || m.is_student_offer_eligible,
-    isBestSeller: m.isBestSeller || m.is_best_seller
+    isStudentOfferEligible: !!(m.isStudentOfferEligible || m.is_student_offer_eligible),
+    isBestSeller: !!(m.isBestSeller || m.is_best_seller),
   };
 }
 
@@ -2092,9 +2163,24 @@ window.selectPosOffer = function(id) {
 };
 
 function renderProductImage(m) {
-  if (m.imageData) return `<div class="pp-image"><img src="${m.imageData}" alt="${m.name}"></div>`;
+  const src = menuImageSrc(m);
+  const alt = escAttr(m.imageAlt || m.name);
+  if (src) return `<div class="pp-image"><img src="${src}" alt="${alt}"></div>`;
   const icons = { Coffee: '☕', 'Iced Drinks': '🧊', Food: '🥐', 'Add-ons': '➕' };
-  return `<div class="pp-image">${icons[m.category] || '🍽'}</div>`;
+  return `<div class="pp-image pp-image-placeholder"><span class="pp-placeholder-icon">${icons[m.category] || '🍽'}</span><span class="pp-placeholder-label">${m.category || 'Product'}</span></div>`;
+}
+
+function renderProductBadges(m) {
+  const badges = [];
+  if (m.isBestSeller) badges.push('<span class="pp-badge pp-badge-best">Best Seller</span>');
+  if (m.isStudentOfferEligible) badges.push('<span class="pp-badge pp-badge-student">Student Offer</span>');
+  return badges.length ? `<div class="pp-badges">${badges.join('')}</div>` : '<div class="pp-badges"></div>';
+}
+
+function renderCartThumb(item) {
+  const src = item.imageData || item.imageUrl;
+  if (src) return `<img class="pos-cart-thumb" src="${src}" alt="">`;
+  return `<div class="pos-cart-thumb pos-cart-thumb-ph">🍽</div>`;
 }
 
 function renderStaffPOS() {
@@ -2131,7 +2217,8 @@ function renderStaffPOS() {
           ${menu.map(m => `
             <div class="pos-product-card">
               ${renderProductImage(m)}
-              <div class="pp-cat">${m.category}${m.isStudentOfferEligible ? ' <span class="student-offer-badge">Student Offer</span>' : ''}</div>
+              ${renderProductBadges(m)}
+              <div class="pp-cat">${m.category}</div>
               <div class="pp-name">${m.name}</div>
               <div class="pp-price">${formatRM(m.price)}</div>
               <button class="btn btn-primary btn-sm" onclick="addToPosCart('${m.id}')">+ Add</button>
@@ -2143,6 +2230,7 @@ function renderStaffPOS() {
         <div class="pos-cart-body">
           ${posCart.length ? posCart.map((item, idx) => `
             <div class="pos-cart-item">
+              ${renderCartThumb(item)}
               <div>
                 <div class="pci-name">${item.name}</div>
                 <div class="pci-meta">${formatRM(item.price)} each</div>
@@ -2197,7 +2285,10 @@ window.addToPosCart = function(id) {
   if (!item || item.active === false) return;
   const existing = posCart.find(c => c.id === id);
   if (existing) existing.qty++;
-  else posCart.push({ id: item.id, name: item.name, category: item.category, price: item.price, qty: 1 });
+  else posCart.push({
+    id: item.id, name: item.name, category: item.category, price: item.price, qty: 1,
+    imageData: item.imageData || null, imageUrl: item.imageUrl || null, imageAlt: item.imageAlt || item.name,
+  });
   if (typeof applySelectedPosOffer === 'function') applySelectedPosOffer();
   renderStaff();
 };
@@ -3154,8 +3245,15 @@ function exportStudentsCSV() {
 
 function exportMenuCSV() {
   const data = loadData();
-  const headers = ['Product ID','Name','Category','Price','Active','Student Offer Eligible','Best Seller','Description'];
-  const rows = data.menu.map(m => [m.id, m.name, m.category, m.price, m.active !== false ? 'Yes' : 'No', m.isStudentOfferEligible ? 'Yes' : 'No', m.isBestSeller ? 'Yes' : 'No', m.description || '']);
+  const headers = ['Product ID','Name','Category','Price','Description','Active','Best Seller','Student Offer Eligible','Has Image','Image Alt'];
+  const rows = data.menu.map(m => [
+    m.slug || m.id, m.name, m.category, m.price, m.description || '',
+    m.active !== false ? 'Yes' : 'No',
+    m.isBestSeller ? 'Yes' : 'No',
+    m.isStudentOfferEligible ? 'Yes' : 'No',
+    menuImageSrc(m) ? 'Yes' : 'No',
+    m.imageAlt || m.name || '',
+  ]);
   downloadCSV('city-cafe-menu.csv', headers, rows);
   toast('Menu CSV exported', 'success');
 }
@@ -3252,19 +3350,27 @@ window.exportCSV = exportSalesCSV;
 function renderAdminMenu() {
   const data = loadData();
   return `
-    <div class="admin-header"><h1>Menu &amp; Rewards</h1><p>Manage POS products, categories, and voucher requirements</p></div>
+    <div class="admin-header"><h1>Menu Management</h1><p>Manage POS products, images, categories, and offer eligibility</p></div>
     <div class="settings-card">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
         <h3>Menu Items</h3>
-        <button class="btn btn-primary btn-sm" onclick="showAddMenuModal()">+ Add Item</button>
+        <button class="btn btn-primary btn-sm" onclick="showAddMenuModal()">+ Add Product</button>
       </div>
       <div class="menu-admin-row" style="font-weight:700;color:var(--black);border-bottom:2px solid #eee">
-        <span>Name</span><span>Price (RM)</span><span>Category</span><span>Active</span><span></span>
+        <span>Product</span><span>Price (RM)</span><span>Category</span><span>Active</span><span></span>
       </div>
       ${data.menu.map(m => `
         <div class="menu-admin-row ${m.active === false ? 'inactive' : ''}">
-          <span>${m.imageData ? `<img class="menu-thumb" src="${m.imageData}">` : '🍽'} ${m.name}
-            <button class="btn btn-sm btn-outline" style="margin-left:8px" onclick="editMenuItem('${m.id}')">Edit</button></span>
+          <span>
+            ${renderMenuThumb(m)}
+            <strong style="margin-left:8px">${m.name}</strong>
+            <div class="menu-admin-badges">
+              ${m.isBestSeller ? '<span class="menu-admin-badge">Best Seller</span>' : ''}
+              ${m.isStudentOfferEligible ? '<span class="menu-admin-badge">Student Offer</span>' : ''}
+              ${menuImageSrc(m) ? '<span class="menu-admin-badge">Has Image</span>' : ''}
+            </div>
+            <button class="btn btn-sm btn-outline" style="margin-left:8px;margin-top:6px" onclick="editMenuItem('${m.id}')">Edit</button>
+          </span>
           <span><input type="number" min="0" step="0.5" value="${m.price}" style="width:70px;padding:6px;border:2px solid #eee;border-radius:6px"
             onchange="updateMenuPrice('${m.id}',this.value)"></span>
           <span><select onchange="updateMenuCategory('${m.id}',this.value)" style="padding:6px;border:2px solid #eee;border-radius:6px;font-size:0.8rem">
@@ -3273,7 +3379,7 @@ function renderAdminMenu() {
           <span><input type="checkbox" ${m.active !== false ? 'checked' : ''} onchange="toggleMenuActive('${m.id}',this.checked)"></span>
           <span></span>
         </div>`).join('')}
-      <p style="font-size:0.8rem;color:#888;margin-top:12px">Only active items appear in the POS product grid.</p>
+      <p style="font-size:0.8rem;color:#888;margin-top:12px">Only active items appear in the Staff POS product grid. Images: PNG, JPG, JPEG, WEBP · max 500 KB.</p>
     </div>
     <div class="settings-card">
       <h3>Voucher Rewards</h3>
@@ -3285,100 +3391,195 @@ function renderAdminMenu() {
 }
 
 window.showAddMenuModal = function() {
-  showModal('Add Menu Item', `
+  window._menuImageData = null;
+  window._menuImageRemoved = false;
+  showModal('Add Product', `
     <div class="input-group"><label>Name</label><input id="menu-name" type="text"></div>
+    <div class="input-group"><label>Description</label><input id="menu-desc" type="text" placeholder="Short product description"></div>
     <div class="input-group"><label>Price (RM)</label><input id="menu-price" type="number" min="0" step="0.5"></div>
     <div class="input-group"><label>Category</label>
-      <select id="menu-cat">${MENU_CATEGORIES.filter(c => c !== 'All').map(c => `<option>${c}</option>`).join('')}</select>
-    </div>`,
+      <select id="menu-cat">${MENU_CATEGORIES.filter(c => c !== 'All').map(c => `<option>${c}</option>`).join('')}</select></div>
+    <div class="input-group"><label>Image Alt Text</label><input id="menu-alt" type="text" placeholder="Describe the product image"></div>
+    <div class="input-group"><label>Product Image</label><input id="menu-image" type="file" accept="${MENU_IMAGE_ACCEPT}" onchange="previewAddMenuImage(this)"></div>
+    <div id="menu-add-preview" class="menu-image-preview"></div>
+    <div id="menu-add-error" class="menu-image-error"></div>
+    <label><input type="checkbox" id="menu-student-offer"> Student offer eligible</label><br>
+    <label><input type="checkbox" id="menu-best"> Best seller</label>`,
     `<button class="btn btn-secondary btn-sm" onclick="closeModal()">Cancel</button>
-     <button class="btn btn-primary btn-sm" onclick="addMenuItem()">Add</button>`);
+     <button class="btn btn-primary btn-sm" onclick="addMenuItem()">Save Product</button>`);
+};
+
+window.previewAddMenuImage = function(input) {
+  const errEl = document.getElementById('menu-add-error');
+  if (errEl) errEl.textContent = '';
+  processMenuImageFile(input.files[0], dataUrl => {
+    window._menuImageData = dataUrl;
+    window._menuImageRemoved = false;
+    const preview = document.getElementById('menu-add-preview');
+    if (preview) preview.innerHTML = `<img src="${dataUrl}" alt="Preview">`;
+  }, msg => { if (errEl) errEl.textContent = msg; input.value = ''; });
 };
 
 window.editMenuItem = function(id) {
   const m = loadData().menu.find(x => x.id === id);
   if (!m) return;
+  window._menuImageData = menuImageSrc(m);
+  window._menuImageRemoved = false;
   showModal('Edit Product — ' + m.name, `
-    <div class="input-group"><label>Name</label><input id="em-name" value="${m.name}"></div>
-    <div class="input-group"><label>Description</label><input id="em-desc" value="${m.description || ''}"></div>
+    <div class="input-group"><label>Name</label><input id="em-name" value="${escAttr(m.name)}"></div>
+    <div class="input-group"><label>Description</label><input id="em-desc" value="${escAttr(m.description || '')}"></div>
     <div class="input-group"><label>Price</label><input id="em-price" type="number" value="${m.price}"></div>
     <div class="input-group"><label>Category</label>
       <select id="em-cat">${MENU_CATEGORIES.filter(c => c !== 'All').map(c => `<option ${m.category === c ? 'selected' : ''}>${c}</option>`).join('')}</select></div>
-    <div class="input-group"><label>Product Image</label><input id="em-image" type="file" accept="image/*" onchange="previewMenuImage(this)"></div>
-    <div id="em-preview">${m.imageData ? `<img class="menu-thumb" src="${m.imageData}" style="width:120px;height:120px">` : ''}</div>
-    <label><input type="checkbox" id="em-student-offer" ${m.isStudentOfferEligible ? 'checked' : ''}> Student offer eligible</label><br>
-    <label><input type="checkbox" id="em-best" ${m.isBestSeller ? 'checked' : ''}> Best seller</label>`,
+    <div class="input-group"><label>Image Alt Text</label><input id="em-alt" value="${escAttr(m.imageAlt || m.name)}"></div>
+    <div class="input-group"><label>Current Image</label>
+      <div id="em-preview" class="menu-image-preview">${menuImageSrc(m) ? `<img src="${menuImageSrc(m)}" alt="${escAttr(m.imageAlt || m.name)}">` : '<p style="color:#888;font-size:0.85rem">No image — placeholder will show in POS</p>'}</div>
+    </div>
+    <div class="input-group"><label>Upload New Image</label><input id="em-image" type="file" accept="${MENU_IMAGE_ACCEPT}" onchange="previewMenuImage(this)"></div>
+    <div id="em-image-error" class="menu-image-error"></div>
+    ${menuImageSrc(m) ? '<button type="button" class="btn btn-outline btn-sm" onclick="removeMenuImagePreview()">Remove Image</button>' : ''}
+    <div style="margin-top:12px">
+      <label><input type="checkbox" id="em-student-offer" ${m.isStudentOfferEligible ? 'checked' : ''}> Student offer eligible</label><br>
+      <label><input type="checkbox" id="em-best" ${m.isBestSeller ? 'checked' : ''}> Best seller</label>
+    </div>`,
     `<button class="btn btn-outline btn-sm" onclick="closeModal()">Cancel</button>
      <button class="btn btn-primary btn-sm" onclick="saveMenuItem('${id}')">Save</button>`);
-  window._menuImageData = m.imageData || null;
+};
+
+window.removeMenuImagePreview = function() {
+  window._menuImageData = null;
+  window._menuImageRemoved = true;
+  const preview = document.getElementById('em-preview');
+  if (preview) preview.innerHTML = '<p style="color:#888;font-size:0.85rem">Image will be removed on save</p>';
 };
 
 window.previewMenuImage = function(input) {
-  const file = input.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = e => {
-    window._menuImageData = e.target.result;
-    document.getElementById('em-preview').innerHTML = `<img src="${e.target.result}" style="width:120px;height:120px;object-fit:cover;border-radius:8px">`;
-  };
-  reader.readAsDataURL(file);
+  const errEl = document.getElementById('em-image-error');
+  if (errEl) errEl.textContent = '';
+  processMenuImageFile(input.files[0], dataUrl => {
+    window._menuImageData = dataUrl;
+    window._menuImageRemoved = false;
+    const preview = document.getElementById('em-preview');
+    if (preview) preview.innerHTML = `<img src="${dataUrl}" alt="Preview">`;
+  }, msg => { if (errEl) errEl.textContent = msg; input.value = ''; });
 };
 
 window.saveMenuItem = async function(id) {
   const data = loadData();
   const item = data.menu.find(m => m.id === id);
   if (!item) return;
-  item.name = document.getElementById('em-name').value;
-  item.description = document.getElementById('em-desc').value;
+  item.name = document.getElementById('em-name').value.trim();
+  item.description = document.getElementById('em-desc').value.trim();
   item.price = parseFloat(document.getElementById('em-price').value) || 0;
   item.category = document.getElementById('em-cat').value;
-  item.imageData = window._menuImageData || item.imageData;
+  item.imageAlt = document.getElementById('em-alt').value.trim() || item.name;
   item.isStudentOfferEligible = document.getElementById('em-student-offer').checked;
   item.isBestSeller = document.getElementById('em-best').checked;
+  if (window._menuImageRemoved) {
+    item.imageData = null;
+    item.imageUrl = null;
+  } else if (window._menuImageData) {
+    item.imageData = window._menuImageData;
+    item.imageUrl = null;
+  }
   saveData(data);
-  if (apiEnabled && item.id && item.id.length > 20) {
+  const apiId = menuApiId(item);
+  if (apiEnabled && apiId) {
     try {
-      await apiPut(`/api/menu/${item.id}`, {
+      const payload = {
         name: item.name, price: item.price, category: item.category,
-        description: item.description, imageData: item.imageData,
-        isStudentOfferEligible: item.isStudentOfferEligible, isBestSeller: item.isBestSeller
-      });
-    } catch { /* offline */ }
+        description: item.description, imageAlt: item.imageAlt,
+        isStudentOfferEligible: item.isStudentOfferEligible, isBestSeller: item.isBestSeller,
+      };
+      if (window._menuImageRemoved) payload.removeImage = true;
+      else if (window._menuImageData) payload.imageData = window._menuImageData;
+      const res = await apiPut(`/api/menu/${apiId}`, payload);
+      Object.assign(item, mapMenuFromApi(res.data));
+      saveData(data);
+    } catch (e) {
+      toast(e.message || 'Could not save to server', 'error');
+      return;
+    }
   }
   closeModal();
   toast('Product updated', 'success');
   renderAdmin();
 };
 
-window.addMenuItem = function() {
+window.addMenuItem = async function() {
   const name = document.getElementById('menu-name').value.trim();
+  const description = document.getElementById('menu-desc').value.trim();
   const price = parseFloat(document.getElementById('menu-price').value) || 0;
   const category = document.getElementById('menu-cat').value;
+  const imageAlt = document.getElementById('menu-alt').value.trim() || name;
+  const isStudentOfferEligible = document.getElementById('menu-student-offer').checked;
+  const isBestSeller = document.getElementById('menu-best').checked;
   if (!name) { toast('Name required', 'error'); return; }
   const data = loadData();
-  data.menu.push({ id: 'item-' + Date.now(), name, price, category, active: true });
+  if (apiEnabled) {
+    try {
+      const payload = { name, price, category, description, imageAlt, isStudentOfferEligible, isBestSeller };
+      if (window._menuImageData) payload.imageData = window._menuImageData;
+      const res = await apiPost('/api/menu', payload);
+      data.menu.push(mapMenuFromApi(res.data));
+      saveData(data);
+      closeModal();
+      toast('Product added', 'success');
+      renderAdmin();
+      return;
+    } catch (e) {
+      toast(e.message || 'Could not add product', 'error');
+      return;
+    }
+  }
+  data.menu.push({
+    id: 'item-' + Date.now(), name, price, category, description, imageAlt,
+    imageData: window._menuImageData || null, active: true, isStudentOfferEligible, isBestSeller,
+  });
   saveData(data);
   closeModal();
   toast('Menu item added', 'success');
   renderAdmin();
 };
 
-window.updateMenuCategory = function(id, cat) {
+window.updateMenuCategory = async function(id, cat) {
   const data = loadData();
   const item = data.menu.find(m => m.id === id);
-  if (item) { item.category = cat; saveData(data); toast('Category updated', 'success'); }
+  if (!item) return;
+  item.category = cat;
+  saveData(data);
+  const apiId = menuApiId(item);
+  if (apiEnabled && apiId) {
+    try { await apiPut(`/api/menu/${apiId}`, { category: cat }); } catch { /* offline */ }
+  }
+  toast('Category updated', 'success');
 };
 
-window.toggleMenuActive = function(id, active) {
+window.toggleMenuActive = async function(id, active) {
   const data = loadData();
   const item = data.menu.find(m => m.id === id);
-  if (item) { item.active = active; saveData(data); toast(active ? 'Item activated' : 'Item deactivated', 'success'); renderAdmin(); }
+  if (!item) return;
+  item.active = active;
+  saveData(data);
+  const apiId = menuApiId(item);
+  if (apiEnabled && apiId) {
+    try { await apiPatch(`/api/menu/${apiId}/status`, { isActive: active }); } catch { /* offline */ }
+  }
+  toast(active ? 'Item activated' : 'Item deactivated', 'success');
+  renderAdmin();
 };
 
-window.updateMenuPrice = function(id, price) {
+window.updateMenuPrice = async function(id, price) {
   const data = loadData();
   const item = data.menu.find(m => m.id === id);
-  if (item) { item.price = parseFloat(price) || 0; saveData(data); toast('Price updated', 'success'); }
+  if (!item) return;
+  item.price = parseFloat(price) || 0;
+  saveData(data);
+  const apiId = menuApiId(item);
+  if (apiEnabled && apiId) {
+    try { await apiPut(`/api/menu/${apiId}`, { price: item.price }); } catch { /* offline */ }
+  }
+  toast('Price updated', 'success');
 };
 
 window.updateVoucherPoints = function(id, pts) {
