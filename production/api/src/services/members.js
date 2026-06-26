@@ -1,7 +1,7 @@
 export function memberSelectFields() {
   return `id, student_id, name, member_code, customer_type, programme, email, phone,
           barcode_value, qr_value, points, total_purchases, current_stamp_progress,
-          free_drinks_available, membership_status, is_active, created_at, updated_at`;
+          free_drinks_available, membership_status, is_active, user_id, created_at, updated_at`;
 }
 
 export function mapMemberRow(row) {
@@ -17,6 +17,7 @@ export function mapMemberRow(row) {
     currentStampProgress: row.current_stamp_progress,
     freeDrinksAvailable: row.free_drinks_available,
     membershipStatus: row.membership_status,
+    userId: row.user_id,
     isActive: row.is_active,
   };
 }

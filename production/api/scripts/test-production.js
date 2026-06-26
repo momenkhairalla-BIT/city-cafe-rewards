@@ -239,6 +239,18 @@ async function main() {
     if (!Array.isArray(hist.data)) throw new Error('Customer cannot load history');
   });
 
+  for (const [label, id] of [
+    ['member code CU-M-2024001', 'CU-M-2024001'],
+    ['phone 60123456789', '60123456789'],
+    ['member code GC-M-001', 'GC-M-001'],
+    ['barcode GC001', 'GC001'],
+  ]) {
+    await test(`Customer login by ${label} / demo123`, async () => {
+      const c = await login(id, 'demo123');
+      if (c.user.role !== 'customer') throw new Error('Wrong role');
+    });
+  }
+
   await test('Customer blocked from admin analytics (403)', async () => {
     const c = await login('CU2024001', 'demo123');
     const { res } = await fetchJson('/api/analytics/overview', {

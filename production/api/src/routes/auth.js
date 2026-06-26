@@ -135,6 +135,7 @@ router.post('/register', async (req, res, next) => {
       [username, userEmail, passwordHash, name.trim()]
     );
     const user = userResult.rows[0];
+    await query(`UPDATE students SET user_id = $1, updated_at = NOW() WHERE id = $2`, [user.id, rows[0].id]);
     const token = signAccessToken({
       sub: user.id,
       username: user.username,

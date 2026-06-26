@@ -81,6 +81,16 @@ async function main() {
     if (d.user.role !== 'customer') throw new Error('Wrong role');
   });
 
+  await test('3d. Login general customer by member code GC-M-001', async () => {
+    const d = await login('GC-M-001', 'demo123');
+    if (d.user.role !== 'customer') throw new Error('Wrong role');
+  });
+
+  await test('3e. Login general customer by barcode GC001', async () => {
+    const d = await login('GC001', 'demo123');
+    if (d.user.role !== 'customer') throw new Error('Wrong role');
+  });
+
   let newGeneralPhone = null;
   let newGeneralMemberCode = null;
   let newStudentId = null;

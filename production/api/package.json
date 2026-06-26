@@ -10,6 +10,7 @@
     "setup-db": "node scripts/setup-db.js",
     "migrate-v2": "node scripts/migrate-v2.js",
     "migrate-v3": "node scripts/migrate-v3.js",
+    "migrate-v4": "node scripts/migrate-v4.js",
     "hash-passwords": "node scripts/hash-demo-passwords.js",
     "verify-deploy": "node scripts/verify-deploy.js",
     "test:acceptance": "node scripts/acceptance-test.js",
