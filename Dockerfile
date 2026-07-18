@@ -14,6 +14,7 @@ RUN cd production/api && npm ci --omit=dev
 COPY production/api ./production/api
 COPY index.html ./index.html
 COPY js ./js
+COPY assets ./assets
 
 WORKDIR /app/production/api
 

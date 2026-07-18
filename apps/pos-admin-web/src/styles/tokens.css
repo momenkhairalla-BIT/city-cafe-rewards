@@ -1,0 +1,68 @@
+/**
+ * Aida Cafe design tokens — aligned with the existing brand in index.html.
+ * Structural foundation only (Phase 1A); full POS/Admin UI comes later.
+ */
+:root {
+  --aida-cream: #f5efe8;
+  --aida-latte: #ecddcf;
+  --aida-coffee: #5f3e29;
+  --aida-espresso: #1c1108;
+  --aida-caramel: #cdad8e;
+  --aida-floral-pink: #d98a8a;
+  --aida-gold: #c99a45;
+  --aida-white: #ffffff;
+
+  --aida-black: var(--aida-espresso);
+  --aida-pink: var(--aida-floral-pink);
+  --aida-soft-pink: var(--aida-latte);
+  --aida-light-grey: var(--aida-cream);
+  --aida-dark-grey: var(--aida-coffee);
+
+  --aida-shadow: 0 4px 24px rgba(28, 17, 8, 0.06);
+  --aida-shadow-lg: 0 12px 40px rgba(28, 17, 8, 0.1);
+  --aida-radius: 20px;
+  --aida-radius-sm: 12px;
+  --aida-transition: 0.25s ease;
+
+  --aida-font-body: 'Plus Jakarta Sans', system-ui, sans-serif;
+  --aida-font-display: 'Playfair Display', Georgia, serif;
+  --aida-font-brand: 'Dancing Script', cursive;
+
+  --aida-space-1: 0.25rem;
+  --aida-space-2: 0.5rem;
+  --aida-space-3: 0.75rem;
+  --aida-space-4: 1rem;
+  --aida-space-6: 1.5rem;
+  --aida-space-8: 2rem;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+  margin: 0;
+}
+
+body {
+  font-family: var(--aida-font-body);
+  background: var(--aida-cream);
+  color: var(--aida-coffee);
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--aida-font-display);
+  color: var(--aida-espresso);
+  margin: 0 0 var(--aida-space-3);
+}
+
+a {
+  color: var(--aida-coffee);
+}

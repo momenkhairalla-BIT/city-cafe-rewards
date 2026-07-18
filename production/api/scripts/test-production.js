@@ -118,7 +118,7 @@ async function checkHealth() {
 async function main() {
   validateBaseUrl();
 
-  console.log(`\nCity Café Production Verification (read-only) → ${BASE}`);
+  console.log(`\nAida Cafe Production Verification (read-only) → ${BASE}`);
   console.log(`Write tests: ${ALLOW_WRITE ? 'ENABLED' : 'disabled (set ALLOW_WRITE_TESTS=1 to enable)'}`);
   if (BASE.includes('onrender.com')) {
     console.log(`Cold-start retries: ${RETRIES} × ${RETRY_DELAY_MS / 1000}s\n`);
@@ -144,7 +144,7 @@ async function main() {
     const res = await fetch(`${BASE}/`, { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const html = await res.text();
-    if (!html.includes('City Café')) throw new Error('index.html not served');
+    if (!html.includes('Aida')) throw new Error('index.html not served');
   });
 
   await test('GET /js/city-cafe-v2.js — static assets', async () => {

@@ -1,4 +1,5 @@
 /** Shared offer eligibility and discount calculation (server-side). */
+import { toSen, fromSen, percentOfSen, mulQtySen, minSen } from './money.js';
 
 const DRINK_CATEGORIES = ['Coffee', 'Iced Drinks'];
 
@@ -20,10 +21,17 @@ export function mapOfferRow(row) {
   };
 }
 
+function toDateOnly(value) {
+  if (value == null) return null;
+  if (value instanceof Date) return value.toISOString().slice(0, 10);
+  const s = String(value);
+  return s.length >= 10 ? s.slice(0, 10) : s;
+}
+
 export function isOfferActive(offer, today = new Date().toISOString().slice(0, 10)) {
   if (!offer || offer.isActive === false || offer.is_active === false) return false;
-  const start = offer.startDate || offer.start_date;
-  const end = offer.endDate || offer.end_date;
+  const start = toDateOnly(offer.startDate || offer.start_date);
+  const end = toDateOnly(offer.endDate || offer.end_date);
   if (start && start > today) return false;
   if (end && end < today) return false;
   return true;
@@ -35,7 +43,7 @@ export function validateOfferEligibility(offer, customerType) {
   const elig = offer.customerTypeEligibility || offer.customer_type_eligibility;
   if (elig === 'all') return { ok: true };
   if (elig === 'city_student' && customerType !== 'city_student') {
-    return { ok: false, error: 'This offer is only available for City University students.' };
+    return { ok: false, error: 'This offer is only available for student members.' };
   }
   if (elig === 'general_customer' && customerType !== 'general_customer') {
     return { ok: false, error: 'This offer is only available for general customers.' };
@@ -43,47 +51,48 @@ export function validateOfferEligibility(offer, customerType) {
   return { ok: true };
 }
 
-function categoryBase(cart, offer) {
+function lineSen(i) {
+  const unit = toSen(i.unitPrice ?? i.price ?? 0);
+  const qty = Number(i.quantity ?? i.qty ?? 1);
+  return mulQtySen(unit, qty);
+}
+
+function categoryBaseSen(cart, offer) {
   const slug = offer.slug || '';
   const name = offer.offerName || offer.offer_name || '';
   if (slug === 'student-drink-10' || name.includes('10% Student Drink')) {
-    return cart.reduce((s, i) => {
-      if (DRINK_CATEGORIES.includes(i.category)) {
-        return s + Number(i.unitPrice ?? i.price) * Number(i.quantity ?? i.qty);
-      }
-      return s;
-    }, 0);
+    return cart.reduce((s, i) => (DRINK_CATEGORIES.includes(i.category) ? s + lineSen(i) : s), 0);
   }
   const cat = offer.appliesToCategory || offer.applies_to_category;
   if (cat) {
-    return cart.reduce((s, i) => {
-      if (i.category === cat) return s + Number(i.unitPrice ?? i.price) * Number(i.quantity ?? i.qty);
-      return s;
-    }, 0);
+    return cart.reduce((s, i) => (i.category === cat ? s + lineSen(i) : s), 0);
   }
-  return cart.reduce((s, i) => s + Number(i.unitPrice ?? i.price) * Number(i.quantity ?? i.qty), 0);
+  return cart.reduce((s, i) => s + lineSen(i), 0);
 }
 
+/** Same loyalty/offer rules; amounts via integer sen (single calculation path). */
 export function calculateOfferDiscount(offer, cart, subtotal) {
   if (!offer) return { discount: 0, pointsMultiplier: 1, label: '', discountType: null };
 
   const type = offer.discountType || offer.discount_type;
   const value = Number(offer.discountValue ?? offer.discount_value ?? 0);
   const label = offer.offerName || offer.offer_name || '';
+  const subtotalSen = toSen(subtotal);
 
   if (type === 'double_points') {
     return { discount: 0, pointsMultiplier: value || 2, label, discountType: type };
   }
 
   if (type === 'percentage') {
-    const base = categoryBase(cart, offer);
-    const discount = base * (value / 100);
-    return { discount, pointsMultiplier: 1, label, discountType: type };
+    const baseSen = categoryBaseSen(cart, offer);
+    const discountSen = percentOfSen(baseSen, value);
+    return { discount: fromSen(discountSen), pointsMultiplier: 1, label, discountType: type };
   }
 
   if (type === 'fixed_amount') {
+    const discountSen = minSen(toSen(value), subtotalSen);
     return {
-      discount: Math.min(value, subtotal),
+      discount: fromSen(discountSen),
       pointsMultiplier: 1,
       label,
       discountType: type,
@@ -98,12 +107,10 @@ export function calculateOfferDiscount(offer, cart, subtotal) {
     );
     const hasCroissant = cart.some(c => (c.name || c.itemName || '').toLowerCase().includes('croissant'));
     if (hasCoffee && hasCroissant) {
-      const normal = cart.reduce(
-        (s, i) => s + Number(i.unitPrice ?? i.price) * Number(i.quantity ?? i.qty),
-        0
-      );
-      const special = value || 12;
-      return { discount: Math.max(0, normal - special), pointsMultiplier: 1, label, discountType: type };
+      const normalSen = cart.reduce((s, i) => s + lineSen(i), 0);
+      const specialSen = toSen(value || 12);
+      const discountSen = Math.max(0, normalSen - specialSen);
+      return { discount: fromSen(discountSen), pointsMultiplier: 1, label, discountType: type };
     }
     return { discount: 0, pointsMultiplier: 1, label: '', discountType: type };
   }

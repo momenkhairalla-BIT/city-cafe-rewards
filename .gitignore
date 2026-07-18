@@ -1,12 +1,15 @@
 ﻿# Dependencies
 node_modules/
-production/api/node_modules/
+**/node_modules/
 
 # Secrets — never commit
 .env
 .env.*
 !.env.example
 production/api/.env
+production/api/.env.disposable
+.env.disposable
+production/api/.tmp-disposable-pg/
 
 # OS / editor
 .DS_Store
@@ -17,6 +20,17 @@ Thumbs.db
 dist/
 build/
 coverage/
+**/dist/
+**/coverage/
+
+# Playwright / E2E artifacts
+**/test-results/
+**/playwright-report/
+**/playwright/.cache/
+blob-report/
+
+# Large local archive duplicates (source docs live under docs/ and AidaCafe-POS-APP-Docs/)
+*.zip
 
 # Cursor
 .cursor/

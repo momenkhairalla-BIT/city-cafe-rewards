@@ -1,7 +1,7 @@
 {
   "name": "city-cafe-api",
   "version": "1.0.0",
-  "description": "City Café Rewards production API",
+  "description": "Aida Cafe Rewards production API",
   "type": "module",
   "main": "src/index.js",
   "scripts": {
@@ -12,6 +12,19 @@
     "migrate-v3": "node scripts/migrate-v3.js",
     "migrate-v4": "node scripts/migrate-v4.js",
     "migrate-v5": "node scripts/migrate-v5.js",
+    "migrate-v6": "node scripts/migrate-v6.js",
+    "migrate-v7": "node scripts/migrate-v7.js",
+    "migrate:validate:disposable": "node scripts/validate-migrations-disposable.js",
+    "migrate:validate:disposable:local": "node scripts/run-disposable-gate-embedded.js",
+    "migrate:phase2a:temp": "node scripts/migrate-phase2a-temp.js",
+    "migrate:phase3a:temp": "node scripts/migrate-phase3a-temp.js",
+    "test:phase2a": "node --test scripts/test-phase2a.js",
+    "test:phase3a": "node --test scripts/test-phase3a.js src/services/money.test.js",
+    "test:money": "node --test src/services/money.test.js",
+    "test:terminal-cookie": "node --test scripts/test-terminal-cookie.js",
+    "test:dual-role": "node --test scripts/test-dual-role.js",
+    "seed:dual-role:temp": "node scripts/seed-dual-role-fixture-temp.js",
+    "test:legacy-employee": "node --test scripts/test-legacy-employee-login.js",
     "hash-passwords": "node scripts/hash-demo-passwords.js",
     "verify-deploy": "node scripts/verify-deploy.js",
     "test:acceptance": "node scripts/acceptance-test.js",
@@ -20,7 +33,10 @@
     "test:phase2": "node scripts/test-phase2.js",
     "test:phase3": "node scripts/test-phase3.js",
     "test:phase4": "node scripts/test-phase4.js",
-    "test:phase5": "node scripts/test-phase5.js"
+    "test:phase5": "node scripts/test-phase5.js",
+    "test:authz": "node --test src/authz/permissions.test.js src/middleware/rateLimit.test.js",
+    "test:v1-security": "node --test scripts/test-v1-security.js",
+    "openapi:lint": "node scripts/lint-openapi.js"
   },
   "engines": {
     "node": ">=20"
@@ -32,5 +48,8 @@
     "express": "^4.21.2",
     "jsonwebtoken": "^9.0.3",
     "pg": "^8.13.1"
+  },
+  "devDependencies": {
+    "embedded-postgres": "^18.4.0-beta.17"
   }
 }

@@ -1,5 +1,5 @@
 /**
- * City Café Rewards V2 — auth, registration, members, offers, QR/barcode
+ * Aida Cafe Rewards V2 — auth, registration, members, offers, QR/barcode
  * Loaded after main index.html script; patches window globals.
  */
 (function () {
@@ -15,7 +15,7 @@
   };
 
   window.memberTypeLabel = function (t) {
-    return t === 'city_student' ? 'City University Student' : 'General Customer';
+    return t === 'city_student' ? 'Student Member' : 'General Customer';
   };
   window.memberTypeBadge = function (m) {
     const t = m.customerType || (m.studentId ? 'city_student' : 'general_customer');
@@ -103,7 +103,7 @@
     document.getElementById('register-type-step')?.classList.add('hidden');
     document.getElementById('register-form-step')?.classList.remove('hidden');
     document.getElementById('register-form-title').textContent = isStudent
-      ? 'Register City University Student'
+      ? 'Register Student Member'
       : 'Register General Customer';
     document.getElementById('register-form-subtitle').textContent = isStudent
       ? 'Student ID and email are required. Special offers apply after registration.'
@@ -153,7 +153,7 @@
 
   window.showAdminAddMemberModal = function (type) {
     const isStudent = type === 'city_student';
-    showModal(isStudent ? 'Add City University Student' : 'Add General Customer', `
+    showModal(isStudent ? 'Add Student Member' : 'Add General Customer', `
       ${isStudent ? `
         <div class="input-group"><label>Student ID *</label><input id="adm-student-id" placeholder="CU2024999"></div>
         <div class="input-group"><label>Full Name *</label><input id="adm-name"></div>
@@ -284,7 +284,7 @@
     );
     if (!offer) return;
     if (offer.customerTypeEligibility === 'city_student' && s.customerType === 'general_customer') {
-      toast('This offer is only available for City University students.', 'error');
+      toast('This offer is only available for student members.', 'error');
       window.posSelectedOfferId = null;
       return;
     }
@@ -316,6 +316,7 @@
     }
     if (typeof isApiAvailable === 'function' ? isApiAvailable() : apiEnabled) {
       try {
+        // Customer login path — unchanged for Team 1 accounts
         const res = await apiPost('/api/auth/login', { username: username.trim(), password });
         const d = res.data;
         setAuthSession({
@@ -330,14 +331,25 @@
         toast('Welcome, ' + d.user.fullName, 'success');
         routeAfterLogin(d.user.role, d.memberCode);
         return;
-      } catch (e) {
-        setLoginError(friendlyAuthError(e));
+      } catch (customerErr) {
+        const code = customerErr?.code || customerErr?.body?.code || customerErr?.data?.code;
+        // Only fall back when server recognised valid employee credentials
+        if (code === 'EMPLOYEE_LOGIN_REQUIRED') {
+          try {
+            await window.doLegacyEmployeeLogin(username.trim(), password);
+            return;
+          } catch (legacyErr) {
+            setLoginError(friendlyAuthError(legacyErr));
+            return;
+          }
+        }
+        setLoginError(friendlyAuthError(customerErr));
         return;
       }
     }
     const key = username.trim();
     const DEMO = {
-      admin: { password: 'admin123', role: 'admin', fullName: 'Café Admin' },
+      admin: { password: 'admin123', role: 'admin', fullName: 'Aida Cafe Admin' },
       staff: { password: 'staff123', role: 'staff', fullName: 'Counter Staff' },
       CU2024001: { password: 'demo123', role: 'customer', fullName: 'Ahmad Faiz', memberCode: 'CU-M-2024001' },
       general001: { password: 'demo123', role: 'customer', fullName: 'Ali Rahman', memberCode: 'GC-M-001' },
@@ -371,11 +383,39 @@
     }
   };
 
+  /** Deprecated dual-run: password-only legacy employee Bearer login (feature-gated). */
+  window.doLegacyEmployeeLogin = async function (username, password) {
+    const legacy = await apiPost('/api/v1/auth/employee/legacy-login', {
+      username: String(username || '').trim(),
+      password,
+    });
+    const d = legacy.data;
+    if (!d?.token || !d?.user) throw new Error('Legacy employee login failed');
+    setAuthSession({
+      username: d.user.username || username,
+      role: d.user.role,
+      fullName: d.user.fullName,
+      memberCode: null,
+      token: d.token,
+      userId: d.user.id,
+      legacyEmployee: true,
+    });
+    if (typeof syncFromApi === 'function') await syncFromApi();
+    toast('Welcome, ' + d.user.fullName, 'success');
+    routeAfterLogin(d.user.role, null);
+  };
+
   window.demoLogin = function (user, pass) {
     const u = document.getElementById('login-username');
     const p = document.getElementById('login-password');
     if (u) u.value = user;
     if (p) p.value = pass;
+    // Explicit employee demo buttons skip customer login entirely
+    if (user === 'admin' || user === 'staff') {
+      setLoginError('');
+      window.doLegacyEmployeeLogin(user, pass).catch((e) => setLoginError(friendlyAuthError(e)));
+      return;
+    }
     doLogin(user, pass);
   };
 
@@ -538,7 +578,7 @@
       (o.offerId || o.id) === window.posSelectedOfferId || o.slug === window.posSelectedOfferId
     );
     if (offer && offer.customerTypeEligibility === 'city_student' && s.customerType === 'general_customer') {
-      toast('This offer is only available for City University students.', 'error');
+      toast('This offer is only available for student members.', 'error');
       return;
     }
     return origPosCheckout();

@@ -15,6 +15,7 @@ import {
   upgradeLegacyPassword,
 } from '../services/auth.js';
 import { requireAuth } from '../middleware/auth.js';
+import { isEmployeeRole } from '../authz/permissions.js';
 
 const router = Router();
 
@@ -171,11 +172,24 @@ router.post('/login', async (req, res, next) => {
 
     const user = await findUserForLogin(username);
     if (!user || user.is_active === false) {
-      return res.status(401).json({ error: 'Invalid credentials' });
+      return res.status(401).json({ error: 'Invalid credentials', code: 'INVALID_CREDENTIALS' });
+    }
+
+    // Phase 2A/2B: employee accounts cannot use customer login
+    if (isEmployeeRole(user.role)) {
+      const validEmployee = await verifyPassword(password, user.password_hash);
+      if (validEmployee) {
+        // Stable signal for legacy SPA — only after valid employee credentials recognised
+        return res.status(401).json({
+          error: 'Employee accounts must use employee login',
+          code: 'EMPLOYEE_LOGIN_REQUIRED',
+        });
+      }
+      return res.status(401).json({ error: 'Invalid credentials', code: 'INVALID_CREDENTIALS' });
     }
 
     const valid = await verifyPassword(password, user.password_hash);
-    if (!valid) return res.status(401).json({ error: 'Invalid credentials' });
+    if (!valid) return res.status(401).json({ error: 'Invalid credentials', code: 'INVALID_CREDENTIALS' });
 
     if (user.password_hash?.startsWith('DEMO:')) {
       await upgradeLegacyPassword(pool, user.id, password);

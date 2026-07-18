@@ -14,6 +14,7 @@ import scanRoutes from './routes/scan.js';
 import offersRoutes from './routes/offers.js';
 import ordersRoutes from './routes/orders.js';
 import analyticsRoutes from './routes/analytics.js';
+import v1Routes, { sendV1Catalog } from './routes/v1/index.js';
 import { requireAuth, requireRole } from './middleware/auth.js';
 
 dotenv.config();
@@ -44,10 +45,14 @@ const indexHtmlPath = resolveIndexHtml();
 app.set('trust proxy', 1);
 
 const corsOrigin = process.env.CORS_ORIGIN;
-app.use(cors(corsOrigin ? { origin: corsOrigin.split(',').map(s => s.trim()) } : { origin: true }));
+app.use(cors({
+  origin: corsOrigin ? corsOrigin.split(',').map((s) => s.trim()) : true,
+  credentials: true,
+}));
 app.use(express.json({ limit: '10mb' }));
 
 app.use('/js', express.static(path.join(prototypeRoot, 'js')));
+app.use('/assets', express.static(path.join(prototypeRoot, 'assets')));
 
 app.get('/health', async (_req, res) => {
   const meta = healthMeta();
@@ -77,6 +82,10 @@ app.get('/health', async (_req, res) => {
 
 app.use('/api/auth', authRoutes);
 
+// Phase 1A: mount /api/v1 BEFORE legacy /api so the prefix matcher does not swallow v1
+app.get('/api/v1', sendV1Catalog);
+app.use('/api/v1', v1Routes);
+
 const api = express.Router();
 api.use(requireAuth);
 
@@ -88,6 +97,7 @@ api.use('/offers', offersRoutes);
 api.use('/orders', ordersRoutes);
 api.use('/analytics', requireRole('admin'), analyticsRoutes);
 
+// Legacy /api/* — unchanged behaviour for existing clients
 app.use('/api', api);
 
 app.get('/', (_req, res) => {
@@ -100,7 +110,7 @@ app.use((err, _req, res, _next) => {
 });
 
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`City Café API ${APP_VERSION} running on port ${PORT}`);
+  console.log(`Aida Cafe API ${APP_VERSION} running on port ${PORT}`);
   console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`Serving UI from: ${indexHtmlPath}`);
   if (process.env.NODE_ENV !== 'production') {

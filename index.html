@@ -1,4 +1,4 @@
-<!-- City Café Rewards — How to Use:
+<!-- Aida Cafe Rewards — How to Use:
   1. Start API: cd production/api && npm run dev
   2. Open http://localhost:3001 in browser (NOT index.html as a file).
   3. Badge shows "Live · Neon DB" when connected.
@@ -8,29 +8,73 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>City Café Rewards — City University Malaysia</title>
+  <title>Aida Café Rewards</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="icon" href="assets/aida-logo-mark.svg" type="image/svg+xml">
+  <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@600;700&family=Playfair+Display:wght@600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
-      --black: #0B0B0D;
-      --pink: #E91E63;
-      --soft-pink: #FCE4EC;
-      --white: #FFFFFF;
-      --light-grey: #F4F4F4;
-      --dark-grey: #333333;
-      --shadow: 0 4px 20px rgba(11, 11, 13, 0.08);
-      --shadow-lg: 0 8px 32px rgba(11, 11, 13, 0.12);
-      --radius: 16px;
-      --radius-sm: 10px;
+      /* Aida System — brand palette */
+      --cream: #F5EFE8;
+      --latte: #ECDDCF;
+      --coffee: #5F3E29;
+      --espresso: #1C1108;
+      --caramel: #CDAD8E;
+      --floral-pink: #D98A8A;
+      --gold: #C99A45;
+      --card-white: #FFFFFF;
+      /* Legacy aliases (used throughout app JS/CSS) */
+      --black: var(--espresso);
+      --pink: var(--floral-pink);
+      --soft-pink: var(--latte);
+      --white: var(--card-white);
+      --light-grey: var(--cream);
+      --dark-grey: var(--coffee);
+      --shadow: 0 4px 24px rgba(28, 17, 8, 0.06);
+      --shadow-lg: 0 12px 40px rgba(28, 17, 8, 0.1);
+      --radius: 20px;
+      --radius-sm: 12px;
+      --radius-pill: 999px;
       --transition: 0.25s ease;
+      --font-body: 'Plus Jakarta Sans', system-ui, sans-serif;
+      --font-display: 'Playfair Display', Georgia, serif;
+      --font-brand: 'Dancing Script', cursive;
     }
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body {
-      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-      background: var(--light-grey);
-      color: var(--dark-grey);
-      line-height: 1.5;
+      font-family: var(--font-body);
+      background: var(--cream);
+      color: var(--coffee);
+      line-height: 1.55;
       min-height: 100vh;
     }
+    h1, h2, h3, .font-display { font-family: var(--font-display); color: var(--espresso); }
+    .aida-brand-script { font-family: var(--font-brand); font-size: 1.75rem; color: var(--coffee); line-height: 1.1; }
+    .aida-brand-script em { font-style: normal; color: var(--floral-pink); }
+    .aida-logo-wrap { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; margin-bottom: 20px; }
+    .aida-logo-wrap img.aida-logo-mark { width: auto; height: 88px; border-radius: 0; box-shadow: none; object-fit: contain; }
+    .aida-logo-wrap img.aida-logo-hero { width: 100%; max-width: 280px; height: auto; border-radius: 12px; box-shadow: var(--shadow); object-fit: contain; }
+    .brand-logo-sm { width: 48px; height: auto; margin-bottom: 10px; border-radius: 0; object-fit: contain; filter: brightness(1.05); }
+    .aida-logo-splash { animation: aidaLogoIn 1.1s ease forwards; }
+    @keyframes aidaLogoIn {
+      0% { opacity: 0; transform: scale(0.92); }
+      100% { opacity: 1; transform: scale(1); }
+    }
+    .aida-logo-mark-anim .logo-ring { stroke-dasharray: 420; stroke-dashoffset: 420; animation: aidaRingDraw 0.8s ease 0.15s forwards; }
+    .aida-logo-mark-anim .logo-steam { opacity: 0; animation: aidaSteam 0.5s ease 0.85s forwards; }
+    .aida-logo-mark-anim .logo-text { opacity: 0; animation: aidaTextIn 0.5s ease 1.05s forwards; }
+    @keyframes aidaRingDraw { to { stroke-dashoffset: 0; } }
+    @keyframes aidaSteam { to { opacity: 1; } }
+    @keyframes aidaTextIn { to { opacity: 1; } }
+    .aida-chip {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 4px 10px; border-radius: var(--radius-pill);
+      font-size: 0.68rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase;
+    }
+    .aida-chip-gold { background: rgba(201, 154, 69, 0.15); color: var(--gold); border: 1px solid rgba(201, 154, 69, 0.35); }
+    .aida-chip-student { background: rgba(217, 138, 138, 0.12); color: #b85c5c; border: 1px solid rgba(217, 138, 138, 0.3); }
+    .aida-chip-live { background: rgba(76, 175, 80, 0.12); color: #2e7d32; border: 1px solid rgba(76, 175, 80, 0.3); }
     .hidden { display: none !important; }
 
     /* Role Switcher */
@@ -922,6 +966,215 @@
     .kpi-grid.compact { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; }
     .kpi-grid.compact .kpi-card { padding: 14px; }
     .kpi-grid.compact .kpi-value { font-size: 1.2rem; }
+
+    /* ===== AIDA SYSTEM — Customer App ===== */
+    .phone-frame {
+      border: none;
+      box-shadow: 0 20px 60px rgba(28, 17, 8, 0.15);
+      background: var(--cream);
+    }
+    .phone-header {
+      background: linear-gradient(165deg, var(--espresso) 0%, #3d2518 100%);
+      padding: 28px 20px 20px;
+    }
+    .phone-header .aida-brand-script { color: var(--latte); font-size: 1.5rem; }
+    .phone-header .phone-tagline { font-size: 0.72rem; color: var(--caramel); letter-spacing: 0.08em; text-transform: uppercase; margin-top: 2px; }
+    .phone-content { background: var(--cream); padding: 16px 14px 24px; }
+    .bottom-nav {
+      background: var(--card-white);
+      border-top: 1px solid var(--latte);
+      padding: 10px 8px 14px;
+      box-shadow: 0 -4px 20px rgba(28, 17, 8, 0.04);
+    }
+    .nav-item.active { color: var(--coffee); font-weight: 700; }
+    .nav-item.active .nav-icon { transform: scale(1.08); }
+    .aida-greeting { margin-bottom: 16px; }
+    .aida-greeting-label { font-size: 0.8rem; color: var(--caramel); text-transform: uppercase; letter-spacing: 0.06em; }
+    .aida-greeting-name { font-family: var(--font-display); font-size: 1.35rem; color: var(--espresso); font-weight: 700; display: block; margin-top: 2px; }
+    .aida-points-hero {
+      background: linear-gradient(135deg, var(--espresso) 0%, #3a2318 55%, var(--coffee) 100%);
+      color: var(--cream);
+      border-radius: var(--radius);
+      padding: 22px 20px;
+      margin-bottom: 14px;
+      position: relative;
+      overflow: hidden;
+    }
+    .aida-points-hero::after {
+      content: ''; position: absolute; top: -40px; right: -40px;
+      width: 120px; height: 120px; border-radius: 50%;
+      background: rgba(201, 154, 69, 0.12);
+    }
+    .aida-points-label { font-size: 0.65rem; letter-spacing: 0.12em; opacity: 0.75; font-weight: 700; }
+    .aida-points-value { font-family: var(--font-display); font-size: 2.4rem; font-weight: 700; color: var(--gold); line-height: 1.1; margin: 4px 0; }
+    .aida-points-sub { font-size: 0.82rem; opacity: 0.85; }
+    .aida-stamp-card {
+      background: var(--card-white);
+      border: 1px solid var(--latte);
+      border-radius: var(--radius);
+      padding: 16px 18px;
+      margin-bottom: 14px;
+      box-shadow: var(--shadow);
+    }
+    .aida-stamp-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+    .aida-stamp-head strong { font-size: 0.85rem; color: var(--espresso); }
+    .aida-stamp-count { font-size: 0.75rem; font-weight: 700; color: var(--gold); letter-spacing: 0.04em; }
+    .aida-offer-banner {
+      background: linear-gradient(90deg, rgba(217, 138, 138, 0.15), rgba(201, 154, 69, 0.1));
+      border: 1px solid rgba(217, 138, 138, 0.25);
+      border-radius: var(--radius-sm);
+      padding: 12px 14px;
+      margin-bottom: 14px;
+      font-size: 0.85rem;
+      color: var(--coffee);
+    }
+    .aida-offer-banner strong { color: var(--espresso); display: block; margin-bottom: 2px; }
+    .aida-featured-card {
+      background: var(--card-white);
+      border-radius: var(--radius);
+      padding: 14px;
+      margin-bottom: 16px;
+      border: 1px solid var(--latte);
+      display: flex; gap: 12px; align-items: center;
+    }
+    .aida-featured-thumb {
+      width: 56px; height: 56px; border-radius: var(--radius-sm);
+      background: linear-gradient(135deg, var(--latte), var(--caramel));
+      display: flex; align-items: center; justify-content: center; font-size: 1.6rem; flex-shrink: 0;
+    }
+    .aida-featured-label { font-size: 0.65rem; font-weight: 700; letter-spacing: 0.08em; color: var(--gold); text-transform: uppercase; }
+    .aida-featured-name { font-weight: 700; color: var(--espresso); font-size: 0.95rem; }
+    .aida-featured-desc { font-size: 0.75rem; color: var(--caramel); }
+    .aida-qr-pass {
+      background: linear-gradient(160deg, var(--espresso), var(--coffee));
+      color: var(--cream);
+      border-radius: var(--radius);
+      padding: 20px;
+      margin-bottom: 16px;
+      text-align: center;
+    }
+    .aida-qr-pass .pass-tier { color: var(--gold); font-size: 0.7rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; }
+    .aida-qr-pass .pass-name { font-family: var(--font-display); font-size: 1.2rem; margin: 6px 0; }
+    .membership-card {
+      background: linear-gradient(135deg, var(--espresso) 55%, var(--coffee) 100%);
+      border: 1px solid rgba(201, 154, 69, 0.25);
+    }
+    .membership-card::after { background: rgba(201, 154, 69, 0.15); }
+    .stat-box .stat-value { color: var(--gold); font-family: var(--font-display); }
+    .progress-bar-fill { background: linear-gradient(90deg, var(--gold), var(--caramel)); }
+    .voucher-card { border-left-color: var(--gold); }
+    .btn-primary { background: var(--coffee); color: var(--cream); }
+    .btn-primary:hover { background: var(--espresso); }
+    .btn-outline { border-color: var(--coffee); color: var(--coffee); }
+    .btn-outline:hover { background: var(--latte); }
+    .btn-secondary { background: var(--espresso); }
+
+    /* ===== AIDA SYSTEM — Staff POS ===== */
+    #staff-app { background: var(--cream); padding: 16px; }
+    .staff-container { border: 1px solid var(--latte); border-radius: var(--radius); }
+    .staff-tabs { background: var(--espresso); }
+    .staff-tab.active { border-bottom-color: var(--gold); color: var(--gold); }
+    .staff-tab:hover { color: var(--caramel); }
+    .pos-header-bar {
+      background: linear-gradient(90deg, var(--espresso), #2e1a10);
+      margin: -24px -24px 20px;
+      padding: 16px 20px;
+    }
+    .pos-badge { background: rgba(201, 154, 69, 0.2); color: var(--gold); border-color: rgba(201, 154, 69, 0.35); }
+    .pos-scan-hero {
+      background: var(--card-white);
+      border: 2px dashed var(--caramel);
+      border-radius: var(--radius);
+      padding: 20px;
+      text-align: center;
+      margin-bottom: 16px;
+      cursor: pointer;
+      transition: var(--transition);
+    }
+    .pos-scan-hero:hover { border-color: var(--gold); background: rgba(201, 154, 69, 0.06); }
+    .pos-scan-hero .scan-icon { font-size: 2rem; margin-bottom: 8px; }
+    .pos-scan-hero strong { display: block; color: var(--espresso); font-size: 1rem; }
+    .pos-scan-hero span { font-size: 0.82rem; color: var(--caramel); }
+    .pos-cat-btn.active { border-color: var(--coffee); background: var(--latte); color: var(--coffee); }
+    .pos-product-card {
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--latte);
+      padding: 12px;
+      min-height: 180px;
+    }
+    .pos-product-card:hover { border-color: var(--caramel); box-shadow: var(--shadow); }
+    .pos-product-card .pp-price { color: var(--coffee); font-family: var(--font-display); }
+    .pos-product-card .btn-primary { width: 100%; margin-top: auto; padding: 10px; font-size: 0.82rem; }
+    .pp-badge-student { background: var(--floral-pink); }
+    .pp-badge-best { background: var(--gold); color: var(--espresso); }
+    .pos-cart-panel { border: 1px solid var(--latte); border-radius: var(--radius); }
+    .pos-cart-header { background: var(--espresso); }
+    .pos-cart-footer { background: var(--cream); }
+    .pos-summary-line.total { color: var(--espresso); font-family: var(--font-display); }
+    .pos-summary-line.earn { color: var(--gold); }
+    .pos-checkout-btn { background: var(--coffee); font-weight: 700; letter-spacing: 0.02em; }
+    .pos-checkout-btn:hover { background: var(--espresso); }
+    .pos-student-strip { background: linear-gradient(90deg, var(--latte), rgba(201,154,69,0.12)); border: 1px solid var(--caramel); }
+    .scanner-box { border-color: var(--gold); background: var(--espresso); }
+    .scan-line { background: var(--gold); box-shadow: 0 0 12px var(--gold); }
+
+    /* ===== AIDA SYSTEM — Admin Dashboard ===== */
+    .admin-sidebar {
+      width: 260px;
+      background: linear-gradient(180deg, var(--espresso) 0%, #2a1810 100%);
+      border-right: 1px solid rgba(205, 173, 142, 0.15);
+    }
+    .sidebar-item.active { color: var(--gold); border-left-color: var(--gold); background: rgba(201, 154, 69, 0.08); }
+    .sidebar-item:hover { color: var(--caramel); }
+    .sidebar-brand .brand-logo-sm { width: 40px; height: 40px; margin-bottom: 10px; border-radius: 50%; }
+    .sidebar-brand .sidebar-title { font-family: var(--font-brand); font-size: 1.4rem; color: var(--latte); }
+    .admin-main { background: var(--cream); }
+    .admin-header h1 { font-family: var(--font-display); font-size: 1.75rem; }
+    .admin-top-bar {
+      display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 12px;
+      margin-bottom: 24px; padding-bottom: 20px; border-bottom: 1px solid var(--latte);
+    }
+    .admin-top-bar .date-line { font-size: 0.85rem; color: var(--caramel); margin-top: 4px; }
+    .kpi-card {
+      border: 1px solid var(--latte);
+      transition: var(--transition);
+    }
+    .kpi-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-lg); }
+    .kpi-card .kpi-value { color: var(--coffee); font-family: var(--font-display); }
+    .kpi-card .kpi-delta { font-size: 0.72rem; margin-top: 6px; font-weight: 600; }
+    .kpi-card .kpi-delta.up { color: #2e7d32; }
+    .kpi-card .kpi-delta.neutral { color: var(--caramel); }
+    .kpi-card-highlight { border-color: var(--gold); background: linear-gradient(135deg, var(--card-white), rgba(201,154,69,0.08)); }
+    .kpi-card-highlight .kpi-value { color: var(--gold); }
+    .chart-section { border: 1px solid var(--latte); }
+    .bar { background: linear-gradient(180deg, var(--gold), var(--caramel)); }
+    .bar-value { color: var(--coffee); }
+    .insights-card { background: linear-gradient(135deg, var(--latte) 0%, var(--card-white) 70%); border-color: var(--caramel); }
+    .data-table th { background: var(--espresso); }
+    .data-table tr:hover td { background: rgba(236, 221, 207, 0.5); }
+
+    /* ===== AIDA SYSTEM — Auth & Entry ===== */
+    #login-screen {
+      background: linear-gradient(160deg, var(--cream) 0%, var(--latte) 50%, rgba(217,138,138,0.08) 100%);
+    }
+    .login-card {
+      border: 1px solid var(--latte);
+      box-shadow: var(--shadow-lg);
+      border-radius: var(--radius);
+    }
+    .login-card h1 { font-family: var(--font-display); }
+    .login-card h1 span { color: var(--floral-pink); }
+    .role-switcher { background: var(--espresso); }
+    .role-tab.active { background: var(--gold); border-color: var(--gold); color: var(--espresso); }
+    .role-tab:hover { border-color: var(--caramel); color: var(--caramel); }
+    .role-switcher .brand span { color: var(--gold); }
+    .entry-header h1 { font-family: var(--font-display); }
+    .entry-header h1 span { color: var(--floral-pink); }
+    .role-card { border: 1px solid var(--latte); }
+    .role-card:hover { border-color: var(--caramel); }
+    .diagram-node.central { background: var(--espresso); }
+    .diagram-arrow { color: var(--gold); }
+    .register-type-card:hover { border-color: var(--coffee); }
   </style>
 </head>
 <body>
@@ -931,8 +1184,10 @@
 <!-- LOGIN SCREEN -->
 <div id="login-screen">
   <div class="login-card">
-    <h1>City Café <span>Rewards</span></h1>
-    <p class="subtitle">City University Malaysia · Member Login</p>
+    <div class="aida-logo-wrap">
+      <img src="assets/aida-logo-mark.svg" alt="Aida Café" class="aida-logo-mark aida-logo-splash">
+    </div>
+    <p class="subtitle" style="text-align:center;margin-bottom:20px">Rewards · Member Login</p>
     <div id="login-error" class="login-error" role="alert"></div>
     <form id="login-form">
       <div class="input-group">
@@ -945,16 +1200,16 @@
       </div>
       <button type="submit" class="btn btn-primary" style="width:100%;margin-top:8px">Login</button>
     </form>
-    <p class="login-hint">City University students can login using Student ID.</p>
+    <p class="login-hint">student members can login using Student ID.</p>
     <p class="login-hint">General customers can login using phone number or member code.</p>
     <div style="text-align:center;margin:20px 0 12px">
       <button type="button" class="auth-link" onclick="showRegisterTypeScreen()">Register New Member</button>
     </div>
     <p class="demo-section-label">Quick demo login</p>
     <div class="demo-login-grid">
-      <button type="button" class="btn btn-secondary btn-sm" onclick="demoLogin('admin','admin123')">Login as Admin</button>
-      <button type="button" class="btn btn-secondary btn-sm" onclick="demoLogin('staff','staff123')">Login as Staff</button>
-      <button type="button" class="btn btn-secondary btn-sm" onclick="demoLogin('CU2024001','demo123')">Login as City Student</button>
+      <button type="button" class="btn btn-secondary btn-sm" onclick="demoLogin('admin','admin123')">Employee Login (Admin)</button>
+      <button type="button" class="btn btn-secondary btn-sm" onclick="demoLogin('staff','staff123')">Employee Login (Staff)</button>
+      <button type="button" class="btn btn-secondary btn-sm" onclick="demoLogin('CU2024001','demo123')">Login as Student Member</button>
       <button type="button" class="btn btn-secondary btn-sm" onclick="demoLogin('general001','demo123')">Login as General Customer</button>
     </div>
     <p class="login-note">Demo accounts for merchant presentation. Production uses secure JWT sessions.</p>
@@ -974,7 +1229,7 @@
       <div class="register-type-grid">
         <div class="register-type-card" onclick="showRegisterForm('city_student')">
           <div class="icon">🎓</div>
-          <h3>City University Student</h3>
+          <h3>Student Member</h3>
           <p>Student ID required. Special offers available after registration.</p>
         </div>
         <div class="register-type-card" onclick="showRegisterForm('general_customer')">
@@ -1000,7 +1255,9 @@
 
 <!-- Role Switcher (shown on all interfaces except entry) -->
 <div id="role-switcher" class="role-switcher hidden">
-  <div class="brand">City Café <span>Rewards</span></div>
+  <div class="brand" style="display:flex;align-items:center;gap:8px">
+    <img src="assets/aida-logo-mark.svg" alt="" style="height:28px;filter:brightness(0) invert(0.92)">
+  </div>
   <span id="api-status-badge" class="api-status-badge offline hidden">Offline</span>
   <div class="role-tabs">
     <button class="role-tab" data-role="customer">Customer</button>
@@ -1014,27 +1271,29 @@
 <!-- ENTRY SCREEN -->
 <div id="entry-screen">
   <div class="entry-header">
-    <h1>City Café <span>Rewards</span></h1>
-    <p class="subtitle">City University Malaysia Café Loyalty System</p>
-    <p class="campus">City University Malaysia Café</p>
+    <div class="aida-logo-wrap" style="margin-bottom:24px">
+      <img src="assets/aida-logo-mark.svg" alt="Aida Café" class="aida-logo-mark" style="height:100px">
+    </div>
+    <p class="subtitle">Loyalty · POS · Management Ecosystem</p>
+    <p class="campus">One warm system for customers, staff, and owners</p>
   </div>
   <div class="role-cards">
     <div class="role-card">
       <div class="icon">📱</div>
-      <h2>Customer</h2>
-      <p>Phone · view points</p>
+      <h2>Customer App</h2>
+      <p>Points, stamps, QR pass &amp; rewards</p>
       <button class="btn btn-primary" data-open="customer">Open Customer App</button>
     </div>
     <div class="role-card">
       <div class="icon">📋</div>
-      <h2>Staff Counter</h2>
-      <p>Tablet · record sales</p>
-      <button class="btn btn-primary" data-open="staff">Open Staff App</button>
+      <h2>Staff POS</h2>
+      <p>Tablet · scan, sell &amp; redeem</p>
+      <button class="btn btn-primary" data-open="staff">Open Staff POS</button>
     </div>
     <div class="role-card">
       <div class="icon">💻</div>
-      <h2>Admin / Owner</h2>
-      <p>Desktop · dashboard</p>
+      <h2>Admin Dashboard</h2>
+      <p>Owner command centre &amp; reports</p>
       <button class="btn btn-primary" data-open="admin">Open Admin Dashboard</button>
     </div>
   </div>
@@ -1060,8 +1319,8 @@
 <div id="customer-app" class="hidden">
   <div class="phone-frame">
     <div class="phone-header">
-      <h2>City Café Rewards</h2>
-      <p>City University Malaysia Café</p>
+      <img src="assets/aida-logo-mark.svg" alt="Aida Café" style="height:52px;margin-bottom:6px;filter:brightness(0) invert(1) opacity(0.95)">
+      <p class="phone-tagline">Rewards · Member App</p>
     </div>
     <div class="phone-content" id="customer-content"></div>
     <nav class="bottom-nav" id="customer-nav">
@@ -1092,7 +1351,8 @@
 <div id="admin-app" class="hidden">
   <aside class="admin-sidebar">
     <div class="sidebar-brand">
-      <h2>City Café Rewards</h2>
+      <img src="assets/aida-logo-mark.svg" alt="Aida Café" class="brand-logo-sm">
+      <div class="sidebar-title">Aida Café</div>
       <p>Admin Dashboard</p>
     </div>
     <nav class="sidebar-nav" id="admin-nav">
@@ -1116,7 +1376,7 @@
 
 <script>
 /* ============================================================
-   CITY CAFÉ REWARDS — Shared Simulated Database (localStorage)
+   AIDA CAFE REWARDS — Shared Simulated Database (localStorage)
    ============================================================ */
 
 const STORAGE_KEY = 'cityCafeRewards';
@@ -1174,7 +1434,7 @@ const DEFAULT_GENERAL = [
 const DEFAULT_OFFERS = [
   { offerId: 'student-drink-10', offerName: '10% Student Drink Discount', customerTypeEligibility: 'city_student', discountType: 'percentage', discountValue: 10, appliesToCategory: 'Coffee', isActive: true },
   { offerId: 'student-combo', offerName: 'Student Combo: Coffee + Croissant RM 12', customerTypeEligibility: 'city_student', discountType: 'special_price', discountValue: 12, appliesToCategory: 'Food', isActive: true },
-  { offerId: 'double-points', offerName: 'Double Points Day (City Students)', customerTypeEligibility: 'city_student', discountType: 'double_points', discountValue: 2, isActive: true },
+  { offerId: 'double-points', offerName: 'Double Points Day (Student Members)', customerTypeEligibility: 'city_student', discountType: 'double_points', discountValue: 2, isActive: true },
   { offerId: 'student-voucher-bonus', offerName: 'Student-Only Bonus Voucher Eligibility', customerTypeEligibility: 'city_student', discountType: 'fixed_amount', discountValue: 5, isActive: true }
 ];
 
@@ -1658,10 +1918,20 @@ async function apiPost(path, body) {
     headers: getApiAuthHeaders(),
     body: JSON.stringify(body)
   });
-  if (res.status === 401) { handleApiUnauthorized(); throw new Error('Authentication required'); }
+  if (res.status === 401) {
+    const err = await res.json().catch(() => ({}));
+    if (!path.startsWith('/api/auth/')) handleApiUnauthorized();
+    const e = new Error(err.error || 'Authentication required');
+    e.code = err.code;
+    e.body = err;
+    throw e;
+  }
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    throw new Error(err.error || `API error ${res.status}`);
+    const e = new Error(err.error || `API error ${res.status}`);
+    e.code = err.code;
+    e.body = err;
+    throw e;
   }
   return res.json();
 }
@@ -1820,7 +2090,7 @@ function friendlyApiError(err) {
     return 'Image is too large. Please upload an image under 500 KB.';
   }
   if (msg.includes('student') && msg.includes('offer')) {
-    return 'This offer is only available for City University students.';
+    return 'This offer is only available for student members.';
   }
   if (msg.includes('database unavailable') || msg.includes('503')) {
     return 'Service temporarily unavailable. Please try again in a moment.';
@@ -1872,7 +2142,7 @@ function renderSystemStatusPanel() {
 
 function renderDemoGuide() {
   return `
-    <div class="admin-header"><h1>Demo Guide</h1><p>Step-by-step presentation flow for City University Malaysia café merchants</p></div>
+    <div class="admin-header"><h1>Demo Guide</h1><p>Step-by-step presentation flow for Aida Cafe merchants</p></div>
     <div class="demo-guide-tip"><strong>Tip:</strong> Use the quick-login buttons on the login screen, or the accounts below. Allow ~30 seconds if Render has been idle (free tier wake-up).</div>
 
     <div class="demo-guide-section">
@@ -1889,7 +2159,7 @@ function renderDemoGuide() {
     </div>
 
     <div class="demo-guide-section">
-      <h3>🎓 City University Student Demo Flow</h3>
+      <h3>🎓 Student Member Demo Flow</h3>
       <ol>
         <li>Login as <span class="demo-account-pill">CU2024001 / demo123</span> (also works: <span class="demo-account-pill">CU-M-2024001</span>)</li>
         <li>View <strong>Home</strong> — points balance and stamp progress</li>
@@ -1928,14 +2198,14 @@ function renderDemoGuide() {
         <tr><th>Role</th><th>Login</th><th>Password</th></tr>
         <tr><td>Admin</td><td>admin</td><td>admin123</td></tr>
         <tr><td>Staff</td><td>staff</td><td>staff123</td></tr>
-        <tr><td>City Student</td><td>CU2024001 or CU-M-2024001</td><td>demo123</td></tr>
+        <tr><td>Student Member</td><td>CU2024001 or CU-M-2024001</td><td>demo123</td></tr>
         <tr><td>General Customer</td><td>general001 or 60123456789</td><td>demo123</td></tr>
       </table>
     </div>`;
 }
 
 window.showDemoGuideModal = function() {
-  showModal('Demo Guide — City Café Rewards', renderDemoGuide().replace(/<div class="admin-header">[\s\S]*?<\/div>/, ''), `
+  showModal('Demo Guide — Aida Cafe Rewards', renderDemoGuide().replace(/<div class="admin-header">[\s\S]*?<\/div>/, ''), `
     <button class="btn btn-primary btn-sm" onclick="closeModal()">Close</button>`);
 };
 
@@ -2043,7 +2313,7 @@ function renderStudentSelector(context) {
     ${data.students.map(s => `
       <button class="student-btn" onclick="selectStudent('${s.studentId || s.memberCode}','${context}')">
         <strong>${s.name}</strong>
-        <span>${s.memberCode || s.studentId} · ${s.customerType === 'general_customer' ? 'General Customer' : (s.programme || 'City Student')}</span>
+        <span>${s.memberCode || s.studentId} · ${s.customerType === 'general_customer' ? 'General Customer' : (s.programme || 'Student Member')}</span>
       </button>`).join('')}
   </div>`;
 }
@@ -2061,31 +2331,47 @@ function renderCustomerHome(s) {
   const pct = (s.currentStampProgress / STAMP_GOAL) * 100;
   const ct = s.customerType || (s.studentId ? 'city_student' : 'general_customer');
   const badge = typeof memberTypeBadge === 'function' ? memberTypeBadge(s) : '';
-  const studentOfferBanner = ct === 'city_student'
-    ? `<div class="pos-offers-panel" style="margin-bottom:12px"><strong>City University Student · Special Offers Active</strong></div>` : '';
-  const idLine = s.studentId
-    ? `${s.studentId} · ${s.membershipStatus}`
-    : `${s.memberCode || 'Member'} · ${s.membershipStatus}`;
+  const firstName = s.name.split(' ')[0];
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+  const freeDrinkHint = s.freeDrinksAvailable > 0
+    ? `≈ ${s.freeDrinksAvailable} free drink${s.freeDrinksAvailable > 1 ? 's' : ''} available`
+    : `≈ ${Math.floor(s.points / 100)} reward${Math.floor(s.points / 100) !== 1 ? 's' : ''} within reach`;
+  const menu = getActiveMenu();
+  const featured = menu.find(m => m.isBestSeller) || menu.find(m => m.category === 'Coffee') || menu[0];
+  const studentOffer = ct === 'city_student'
+    ? `<div class="aida-offer-banner"><strong>Student Offer · Active</strong>Show your QR at the counter for member-only discounts.</div>` : '';
   return `
-    <p style="font-size:1.1rem;font-weight:600;color:var(--black);margin-bottom:8px">Hi, ${s.name.split(' ')[0]} 👋 ${badge}</p>
-    ${studentOfferBanner}
-    <div class="membership-card">
-      <div class="card-label">City Café Rewards Member</div>
-      <div class="card-name">${s.name}</div>
-      <div class="card-id">${idLine}</div>
+    <div class="aida-greeting">
+      <span class="aida-greeting-label">${greeting}</span>
+      <span class="aida-greeting-name">${firstName} ${badge}</span>
     </div>
-    <div class="stat-grid">
-      <div class="stat-box"><div class="stat-value">${s.points}</div><div class="stat-label">Total Points</div></div>
-      <div class="stat-box"><div class="stat-value">${s.freeDrinksAvailable}</div><div class="stat-label">Free Drinks</div></div>
+    <div class="aida-points-hero">
+      <div class="aida-points-label">Aida Points Balance</div>
+      <div class="aida-points-value">${s.points.toLocaleString()}</div>
+      <div class="aida-points-sub">${freeDrinkHint}</div>
     </div>
-    <div class="progress-section">
-      <div class="section-title">Stamp Progress — ${s.currentStampProgress} / ${STAMP_GOAL} purchases</div>
+    <div class="aida-stamp-card">
+      <div class="aida-stamp-head">
+        <strong>Stamp Rewards</strong>
+        <span class="aida-stamp-count">${s.currentStampProgress} / ${STAMP_GOAL} STAMPS</span>
+      </div>
       <div class="progress-bar-bg"><div class="progress-bar-fill" style="width:${pct}%"></div></div>
-      <p style="font-size:0.8rem;color:#888;margin-top:8px">Buy 10 times and get 1 free drink ☕</p>
+      <p style="font-size:0.78rem;color:var(--caramel);margin-top:8px">Buy ${STAMP_GOAL} times · get 1 free drink</p>
     </div>
+    ${studentOffer}
+    ${featured ? `
+    <div class="aida-featured-card">
+      <div class="aida-featured-thumb">${menuImageSrc(featured) ? `<img src="${menuImageSrc(featured)}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:10px">` : '☕'}</div>
+      <div>
+        <div class="aida-featured-label">Featured Today · Barista Pick</div>
+        <div class="aida-featured-name">${featured.name}</div>
+        <div class="aida-featured-desc">${featured.description || featured.category} · ${formatRM(featured.price)}</div>
+      </div>
+    </div>` : ''}
     <div class="section-title">Recent Activity</div>
     ${recent.length ? recent.map(tx => renderTxItem(tx)).join('') :
-      '<div class="empty-state"><div class="empty-icon">📭</div><p>No transactions yet</p></div>'}
+      '<div class="empty-state"><div class="empty-icon">☕</div><p>No visits yet — show your QR at Aida Café!</p></div>'}
   `;
 }
 
@@ -2118,18 +2404,23 @@ function generateQRPattern(id) {
 function renderCustomerQR(s) {
   const code = s.qrValue || s.barcodeValue || s.memberCode || s.studentId;
   const barcodeHtml = typeof renderBarcode === 'function' ? renderBarcode(code) : `<p>${code}</p>`;
+  const ct = s.customerType || (s.studentId ? 'city_student' : 'general_customer');
+  const tier = s.freeDrinksAvailable > 0 || s.points >= 500 ? 'Gold Member' : s.points >= 200 ? 'Silver Member' : 'Aida Member';
   return `
-    <div class="profile-card-mini"><strong>${s.name}</strong><br>
-      <span style="font-size:0.85rem;color:#888">${s.programme || memberTypeLabel ? (typeof memberTypeLabel === 'function' ? memberTypeLabel(s.customerType) : '') : ''}</span></div>
+    <div class="aida-qr-pass">
+      <div class="pass-tier">${tier} · Aida Café</div>
+      <div class="pass-name">${s.name}</div>
+      <p style="font-size:0.72rem;opacity:0.8;margin:4px 0 12px;letter-spacing:0.06em">MEMBER · ${(s.memberCode || code).toUpperCase()}</p>
+      <div style="font-family:var(--font-display);font-size:1.5rem;color:var(--gold);font-weight:700">${s.points.toLocaleString()}</div>
+      <div style="font-size:0.7rem;opacity:0.75;margin-bottom:12px">Aida Points</div>
+      ${ct === 'city_student' ? '<span class="aida-chip aida-chip-student">Verified Student</span>' : ''}
+    </div>
     <div class="qr-container">
-      <p style="font-weight:600;margin-bottom:8px">My QR / Barcode</p>
       <div class="qr-code">${generateQRPattern(code)}</div>
       ${barcodeHtml}
-      <p style="font-weight:700;color:var(--black);font-size:1rem">Member Code: ${s.memberCode || code}</p>
-      ${s.studentId ? `<p style="font-size:0.9rem">Student ID: ${s.studentId}</p>` : ''}
-      <p style="font-size:0.85rem;color:#888;margin:12px 0">Show this QR or barcode to café staff before payment.</p>
-      <button class="btn btn-outline btn-sm" onclick="copyId('${code}')">Copy Code</button>
-      <p style="font-size:0.75rem;color:#aaa;margin-top:16px">Future version can integrate camera scanning using browser QR scanner library or hardware scanner.</p>
+      <p style="font-weight:600;margin:12px 0 4px;color:var(--espresso)">Scan at counter</p>
+      <p style="font-size:0.82rem;color:var(--caramel);margin-bottom:12px">Show this QR before payment to earn &amp; redeem Aida Points.</p>
+      <button class="btn btn-primary btn-sm" onclick="copyId('${code}')">Copy Member Code</button>
     </div>`;
 }
 
@@ -2170,7 +2461,7 @@ function renderCustomerProfile(s) {
   const ct = s.customerType || 'city_student';
   return `
     <div class="profile-field"><label>Member Profile</label><span>${s.name}</span></div>
-    <div class="profile-field"><label>Customer Type</label><span>${ct === 'city_student' ? 'City University Student' : 'General Customer'}</span></div>
+    <div class="profile-field"><label>Customer Type</label><span>${ct === 'city_student' ? 'Student Member' : 'General Customer'}</span></div>
     <div class="profile-field"><label>Member Code</label><span>${s.memberCode || '—'}</span></div>
     ${s.studentId ? `<div class="profile-field"><label>Student ID</label><span>${s.studentId}</span></div>` : ''}
     ${s.programme ? `<div class="profile-field"><label>Programme</label><span>${s.programme}</span></div>` : ''}
@@ -2231,7 +2522,7 @@ function getScannedStudent() {
 function renderStudentInfoCard(s) {
   const ct = s.customerType || (s.studentId ? 'city_student' : 'general_customer');
   const badge = ct === 'city_student'
-    ? `<div class="pos-offers-panel"><strong>City University Student · Special Offers Active</strong></div>`
+    ? `<div class="pos-offers-panel"><strong>Student Member · Special Offers Active</strong></div>`
     : `<div style="margin-bottom:8px">${typeof memberTypeBadge === 'function' ? memberTypeBadge(s) : ''}</div>`;
   return `${badge}
   <div class="student-info-card">
@@ -2252,7 +2543,12 @@ function renderStaffScan() {
   const data = loadData();
   const scanVal = data.staffScannedId || loadUiState().staffScannedId || '';
   return `
-    <h3 style="margin-bottom:8px;color:var(--black)">Scan QR / Barcode / Enter Member Code</h3>
+    <div class="pos-scan-hero" style="cursor:default;margin-bottom:20px">
+      <div class="scan-icon">📷</div>
+      <strong>Scan Member QR</strong>
+      <span>Tap below or enter code to attach Aida Points</span>
+    </div>
+    <h3 style="margin-bottom:8px;color:var(--espresso);font-family:var(--font-display)">Member Lookup</h3>
     <p class="scan-hint">Ready to scan. Physical barcode scanner supported as keyboard input.</p>
     <div class="scanner-box"><div class="scan-line"></div><div class="scanner-label">Ready for Scanner</div></div>
     <div class="input-group">
@@ -2310,7 +2606,7 @@ function renderPosStudentStrip(s) {
     <div><span>Points</span><strong style="color:var(--pink)">${s.points}</strong></div>
     <div><span>Stamps</span><strong>${s.currentStampProgress} / ${STAMP_GOAL}</strong></div>
     <div><span>Free Drinks</span><strong>${s.freeDrinksAvailable}</strong></div>
-    ${ct === 'city_student' ? '<div style="grid-column:1/-1;color:var(--pink);font-size:0.85rem;font-weight:600">City University Student · Special Offers Active</div>' : ''}
+    ${ct === 'city_student' ? '<div style="grid-column:1/-1;color:var(--pink);font-size:0.85rem;font-weight:600">Student Member · Special Offers Active</div>' : ''}
   </div>`;
 }
 
@@ -2324,8 +2620,8 @@ function renderPosOffers(s) {
     </div>`;
   }
   const offers = typeof getEligibleOffers === 'function' ? getEligibleOffers(s) : (loadData().offers || []).filter(o => o.isActive);
-  if (!offers.length) return `<div class="pos-offers-panel"><strong>City University Student · Special Offers Active</strong><p style="margin:8px 0 0;font-size:0.85rem">No active offers at this time.</p></div>`;
-  return `<div class="pos-offers-panel"><strong>City University Student · Special Offers Active</strong>
+  if (!offers.length) return `<div class="pos-offers-panel"><strong>Student Member · Special Offers Active</strong><p style="margin:8px 0 0;font-size:0.85rem">No active offers at this time.</p></div>`;
+  return `<div class="pos-offers-panel"><strong>Student Member · Special Offers Active</strong>
     <p style="margin:6px 0 10px;font-size:0.8rem">Select one offer before checkout</p>
     ${offers.map(o => {
       const oid = o.offerId || o.id;
@@ -2380,18 +2676,26 @@ function renderStaffPOS() {
   const pointsEarned = Math.floor(finalTotal * pm);
   const change = posPaymentMethod === 'Cash' ? Math.max(0, (posCashReceived || 0) - finalTotal) : 0;
   const ct = s ? (s.customerType || (s.studentId ? 'city_student' : 'general_customer')) : '';
-  const ctLabel = ct === 'general_customer' ? 'General Customer' : ct === 'city_student' ? 'City University Student' : '—';
+  const ctLabel = ct === 'general_customer' ? 'General Customer' : ct === 'city_student' ? 'Student Member' : '—';
   const appliedOffer = window._posOfferUsed || null;
 
   return `
     <div class="pos-header-bar">
-      <div><strong>City Café POS</strong></div>
+      <div>
+        <div style="font-family:var(--font-brand);font-size:1.2rem;color:var(--latte)">Aida <span style="color:var(--gold)">Café</span></div>
+        <div style="font-size:0.72rem;color:var(--caramel);margin-top:2px">Counter 1 · Staff POS</div>
+      </div>
       <div class="pos-badges">
+        <span class="pos-badge aida-chip-live">● Online</span>
         <span class="pos-badge">Counter Mode</span>
-        <span class="pos-badge">Live POS Demo</span>
-        <button type="button" class="pos-help-btn" onclick="showDemoGuideModal()">? Demo Help</button>
+        <button type="button" class="pos-help-btn" onclick="showDemoGuideModal()">? Help</button>
       </div>
     </div>
+    ${!s ? `<div class="pos-scan-hero" onclick="document.querySelector('#staff-tabs .staff-tab[data-tab=scan]')?.click()">
+      <div class="scan-icon">📷</div>
+      <strong>Scan Member QR</strong>
+      <span>Tap to earn &amp; redeem Aida Points</span>
+    </div>` : ''}
     <div class="pos-layout">
       <div class="pos-products-panel">
         ${renderPosStudentStrip(s)}
@@ -2453,7 +2757,7 @@ function renderStaffPOS() {
             <div class="pos-summary-line"><span>Change</span><strong>${formatRM(change)}</strong></div>` : ''}
           <button class="btn btn-primary pos-checkout-btn" onclick="posCheckout()"
             ${!s || posCart.length === 0 || finalTotal <= 0 ? 'disabled' : ''}>
-            Confirm Payment &amp; Record Sale
+            Checkout · ${formatRM(finalTotal)}
           </button>
           <div class="pos-cart-actions">
             <button class="btn btn-outline btn-sm" onclick="clearPosCart()">Clear Cart</button>
@@ -2607,15 +2911,15 @@ function showReceiptModal(tx, student, freeDrinkUnlocked) {
   window._lastReceiptText = receiptText;
   showModal('Sale Receipt', `
     <div class="receipt-print-area" id="receipt-print-area">
-      <div class="r-title">City Café Rewards</div>
-      <div class="r-sub">City University Malaysia Café</div>
+      <div class="r-title">Aida Cafe Rewards</div>
+      <div class="r-sub">Aida Cafe</div>
       <div class="r-divider"></div>
       <div class="r-row"><span>Order ID</span><span>${tx.orderId}</span></div>
       <div class="r-row"><span>Date</span><span>${formatDate(getTxDate(tx))}</span></div>
       <div class="r-row"><span>Cashier</span><span>${tx.cashierName || CASHIER_NAME}</span></div>
       <div class="r-divider"></div>
       <div class="r-row"><span>Member</span><span>${student.name}</span></div>
-      <div class="r-row"><span>Member Type</span><span>${student.customerType === 'general_customer' ? 'General Customer' : 'City University Student'}</span></div>
+      <div class="r-row"><span>Member Type</span><span>${student.customerType === 'general_customer' ? 'General Customer' : 'Student Member'}</span></div>
       <div class="r-row"><span>Member Code</span><span>${student.memberCode || '—'}</span></div>
       ${student.studentId ? `<div class="r-row"><span>Student ID</span><span>${student.studentId}</span></div>` : ''}
       ${tx.offerUsed ? `<div class="r-row"><span>Offer Applied</span><span>${tx.offerUsed}</span></div>` : ''}
@@ -2640,7 +2944,7 @@ function showReceiptModal(tx, student, freeDrinkUnlocked) {
 
 function buildReceiptText(tx, student, freeDrinkUnlocked) {
   const lines = [
-    'City Café Rewards', 'City University Malaysia Café', '---',
+    'Aida Cafe Rewards', 'Aida Cafe', '---',
     `Order ID: ${tx.orderId}`, `Date: ${formatDate(getTxDate(tx))}`,
     `Cashier: ${tx.cashierName || CASHIER_NAME}`, '---',
     `Student: ${student.name}`, `ID: ${student.studentId}`, '---'
@@ -2664,7 +2968,7 @@ window.downloadReceiptText = function() {
   const blob = new Blob([window._lastReceiptText || ''], { type: 'text/plain' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = 'city-cafe-receipt.txt';
+  a.download = 'aida-cafe-receipt.txt';
   a.click();
 };
 
@@ -2959,8 +3263,21 @@ function renderAdminOverview() {
   const closeToFreeDrink = data.students.filter(s => s.currentStampProgress >= 7 && s.currentStampProgress <= 9).length;
 
   return `
-    <div class="admin-header"><h1>Merchant Overview</h1><p>City Café Rewards — sales, loyalty, and member analytics · ${APP_VERSION}</p></div>
+    <div class="admin-top-bar">
+      <div>
+        <h1 style="margin:0">Overview</h1>
+        <p class="date-line">Aida Café · ${new Date().toLocaleDateString('en-MY', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}</p>
+      </div>
+      <button type="button" class="btn btn-outline btn-sm" onclick="exportSalesCSV()">Export Report</button>
+    </div>
     ${renderSystemStatusPanel()}
+    <div class="kpi-grid compact" style="margin-bottom:24px">
+      <div class="kpi-card kpi-card-highlight"><div class="kpi-value">${formatRM(todayRevenue)}</div><div class="kpi-label">Today Sales</div><div class="kpi-delta up">Live from POS</div></div>
+      <div class="kpi-card"><div class="kpi-value">${todayOrders}</div><div class="kpi-label">Transactions</div><div class="kpi-delta neutral">Today</div></div>
+      <div class="kpi-card"><div class="kpi-value">${data.students.length}</div><div class="kpi-label">Active Members</div></div>
+      <div class="kpi-card"><div class="kpi-value">${cityStudents}</div><div class="kpi-label">Student Members</div></div>
+      <div class="kpi-card"><div class="kpi-value">${totalRedemptions}</div><div class="kpi-label">Rewards Redeemed</div></div>
+    </div>
     <div class="insights-card">
       <h3>Merchant Insights</h3>
       <div class="insights-grid">
@@ -2977,7 +3294,7 @@ function renderAdminOverview() {
       <div class="kpi-card"><div class="kpi-value">${todayOrders}</div><div class="kpi-label">Today Orders</div></div>
       <div class="kpi-card"><div class="kpi-value">${formatRM(aov)}</div><div class="kpi-label">Average Order Value</div></div>
       <div class="kpi-card"><div class="kpi-value">${data.students.length}</div><div class="kpi-label">Total Members</div></div>
-      <div class="kpi-card"><div class="kpi-value">${cityStudents}</div><div class="kpi-label">City University Students</div></div>
+      <div class="kpi-card"><div class="kpi-value">${cityStudents}</div><div class="kpi-label">Student Members</div></div>
       <div class="kpi-card"><div class="kpi-value">${generalCustomers}</div><div class="kpi-label">General Customers</div></div>
       <div class="kpi-card"><div class="kpi-value">${totalPoints.toLocaleString()}</div><div class="kpi-label">Points Issued</div></div>
       <div class="kpi-card"><div class="kpi-value">${totalRedemptions}</div><div class="kpi-label">Rewards Redeemed</div></div>
@@ -3045,26 +3362,26 @@ function renderAdminStudents() {
     return matchSearch && matchFilter;
   });
   return `
-    <div class="admin-header"><h1>Members</h1><p>Manage City University students and general customers</p></div>
+    <div class="admin-header"><h1>Members</h1><p>Manage student members and general customers</p></div>
     <div class="data-table-wrap">
       <div class="table-toolbar">
         <input type="text" placeholder="Search name, phone, student ID, member code…" value="${studentSearch}"
           oninput="studentSearch=this.value;renderAdmin()">
         <select onchange="memberFilter=this.value;renderAdmin()">
           <option value="all" ${memberFilter === 'all' ? 'selected' : ''}>All</option>
-          <option value="city_student" ${memberFilter === 'city_student' ? 'selected' : ''}>City Students</option>
+          <option value="city_student" ${memberFilter === 'city_student' ? 'selected' : ''}>Student Members</option>
           <option value="general_customer" ${memberFilter === 'general_customer' ? 'selected' : ''}>General Customers</option>
           <option value="active" ${memberFilter === 'active' ? 'selected' : ''}>Active</option>
           <option value="inactive" ${memberFilter === 'inactive' ? 'selected' : ''}>Inactive</option>
         </select>
-        <button class="btn btn-primary btn-sm" onclick="showRegisterModal('city_student')">+ Add City Student</button>
+        <button class="btn btn-primary btn-sm" onclick="showRegisterModal('city_student')">+ Add Student Member</button>
         <button class="btn btn-outline btn-sm" onclick="showRegisterModal('general_customer')">+ Add General Customer</button>
       </div>
       <table class="data-table">
         <thead><tr><th>Name</th><th>Type</th><th>Member Code</th><th>Student ID</th><th>Phone</th><th>Points</th><th>Status</th><th>Actions</th></tr></thead>
         <tbody>${filtered.map(s => `<tr>
           <td>${s.name}</td>
-          <td>${s.customerType === 'general_customer' ? 'General' : 'City Student'}</td>
+          <td>${s.customerType === 'general_customer' ? 'General' : 'Student Member'}</td>
           <td>${s.memberCode || '—'}</td>
           <td>${s.studentId || '—'}</td>
           <td>${s.phone || '—'}</td>
@@ -3150,13 +3467,13 @@ function renderAdminOffers() {
   const data = loadData();
   const offers = data.offers || [];
   return `
-    <div class="admin-header"><h1>Offers &amp; Promotions</h1><p>Manage City University student and member offers</p></div>
+    <div class="admin-header"><h1>Offers &amp; Promotions</h1><p>Manage student member and general customer offers</p></div>
     <button class="btn btn-primary btn-sm" style="margin-bottom:16px" onclick="showAddOfferModal()">+ Add Offer</button>
     <table class="data-table">
       <thead><tr><th>Offer Name</th><th>Eligibility</th><th>Type</th><th>Value</th><th>Category</th><th>Dates</th><th>Active</th><th>Actions</th></tr></thead>
       <tbody>${offers.map(o => {
         const oid = o.offerId || o.id;
-        const elig = o.customerTypeEligibility === 'city_student' ? 'City Students' : o.customerTypeEligibility === 'general_customer' ? 'General' : 'All';
+        const elig = o.customerTypeEligibility === 'city_student' ? 'Student Members' : o.customerTypeEligibility === 'general_customer' ? 'General' : 'All';
         return `<tr>
         <td>${o.offerName}</td>
         <td>${elig}</td>
@@ -3190,7 +3507,7 @@ window.showAddOfferModal = function() {
   showModal('Add Offer', `
     <div class="input-group"><label>Offer Name *</label><input id="off-name"></div>
     <div class="input-group"><label>Eligibility</label>
-      <select id="off-elig"><option value="city_student">City University students only</option>
+      <select id="off-elig"><option value="city_student">student members only</option>
       <option value="general_customer">General customers only</option><option value="all">All members</option></select></div>
     <div class="input-group"><label>Discount Type</label>
       <select id="off-type"><option value="percentage">Percentage</option><option value="fixed_amount">Fixed Amount</option>
@@ -3241,7 +3558,7 @@ window.editOfferModal = function(id) {
     <div class="input-group"><label>Offer Name</label><input id="edit-off-name" value="${o.offerName || ''}"></div>
     <div class="input-group"><label>Eligibility</label>
       <select id="edit-off-elig">
-        <option value="city_student" ${o.customerTypeEligibility === 'city_student' ? 'selected' : ''}>City University students</option>
+        <option value="city_student" ${o.customerTypeEligibility === 'city_student' ? 'selected' : ''}>student members</option>
         <option value="general_customer" ${o.customerTypeEligibility === 'general_customer' ? 'selected' : ''}>General customers</option>
         <option value="all" ${o.customerTypeEligibility === 'all' ? 'selected' : ''}>All members</option>
       </select></div>
@@ -3323,7 +3640,7 @@ window.viewStudentDetail = function(id) {
   const badge = typeof memberTypeBadge === 'function' ? memberTypeBadge(s) : '';
   showModal(s.name, `
     <div style="margin-bottom:12px">${badge}</div>
-    <div class="profile-field"><label>Customer Type</label><span>${ct === 'city_student' ? 'City University Student' : 'General Customer'}</span></div>
+    <div class="profile-field"><label>Customer Type</label><span>${ct === 'city_student' ? 'Student Member' : 'General Customer'}</span></div>
     <div class="profile-field"><label>Member Code</label><span>${s.memberCode || '—'}</span></div>
     ${s.studentId ? `<div class="profile-field"><label>Student ID</label><span>${s.studentId}</span></div>` : ''}
     ${s.programme ? `<div class="profile-field"><label>Programme</label><span>${s.programme}</span></div>` : ''}
@@ -3435,7 +3752,7 @@ function exportSalesCSV() {
       t.offerUsed || '', t.paymentMethod || '', t.cashierName || CASHIER_NAME, getTxPoints(t),
       t.freeDrinkUnlocked ? 'Yes' : 'No', getTxType(t)];
   });
-  downloadCSV('city-cafe-sales-transactions.csv', headers, rows);
+  downloadCSV('aida-cafe-sales-transactions.csv', headers, rows);
   toast('Sales CSV exported', 'success');
 }
 
@@ -3443,7 +3760,7 @@ function exportStudentsCSV() {
   const data = loadData();
   const headers = ['Member Code','Customer Type','Student ID','Name','Programme','Phone','Email','Points','Total Purchases','Stamp Progress','Free Drinks Available','Membership Status','Active'];
   const rows = data.students.map(s => [s.memberCode, s.customerType || 'city_student', s.studentId || '', s.name, s.programme || '', s.phone || '', s.email || '', s.points, s.totalPurchases, s.currentStampProgress, s.freeDrinksAvailable, s.membershipStatus, s.isActive !== false ? 'Yes' : 'No']);
-  downloadCSV('city-cafe-members.csv', headers, rows);
+  downloadCSV('aida-cafe-members.csv', headers, rows);
   toast('Members CSV exported', 'success');
 }
 
@@ -3458,7 +3775,7 @@ function exportMenuCSV() {
     menuImageSrc(m) ? 'Yes' : 'No',
     m.imageAlt || m.name || '',
   ]);
-  downloadCSV('city-cafe-menu.csv', headers, rows);
+  downloadCSV('aida-cafe-menu.csv', headers, rows);
   toast('Menu CSV exported', 'success');
 }
 
@@ -3466,7 +3783,7 @@ function exportOffersCSV() {
   const data = loadData();
   const headers = ['Offer ID','Offer Name','Eligibility','Discount Type','Discount Value','Category','Active','Start Date','End Date'];
   const rows = (data.offers || []).map(o => [o.offerId || o.id, o.offerName, o.customerTypeEligibility, o.discountType, o.discountValue, o.appliesToCategory || '', o.isActive ? 'Yes' : 'No', o.startDate || '', o.endDate || '']);
-  downloadCSV('city-cafe-offers.csv', headers, rows);
+  downloadCSV('aida-cafe-offers.csv', headers, rows);
   toast('Offers CSV exported', 'success');
 }
 
@@ -3478,7 +3795,7 @@ function exportRedemptionsCSV() {
     return [dt.date, dt.time, t.studentId, t.studentName, t.rewardName || t.item || '',
       (t.pointsUsed ?? Math.abs(getTxPoints(t))) || 0, getTxType(t), t.cashierName || CASHIER_NAME];
   });
-  downloadCSV('city-cafe-redemptions.csv', headers, rows);
+  downloadCSV('aida-cafe-redemptions.csv', headers, rows);
   toast('Redemptions CSV exported', 'success');
 }
 
@@ -3507,7 +3824,7 @@ function exportDailySummaryCSV() {
     return [date, d.revenue.toFixed(2), d.orders, d.orders ? (d.revenue / d.orders).toFixed(2) : 0,
       d.points, d.redemptions, d.freeDrinks, top ? top[0] : '—'];
   });
-  downloadCSV('city-cafe-daily-summary.csv', headers, rows);
+  downloadCSV('aida-cafe-daily-summary.csv', headers, rows);
   toast('Daily summary CSV exported', 'success');
 }
 
@@ -3516,7 +3833,7 @@ function exportBackupJSON() {
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = 'city-cafe-backup.json';
+  a.download = 'aida-cafe-backup.json';
   a.click();
   toast('Backup JSON exported', 'success');
 }
@@ -3807,7 +4124,7 @@ function renderAdminSOP() {
     'Admin reviews analytics and manages loyalty rules.'
   ];
   return `
-    <div class="admin-header"><h1>Standard Operating Procedure</h1><p>City Café Rewards loyalty workflow</p></div>
+    <div class="admin-header"><h1>Standard Operating Procedure</h1><p>Aida Cafe Rewards loyalty workflow</p></div>
     <ul class="sop-list">${steps.map((s, i) => `
       <li><div class="sop-num">${i + 1}</div><div>${s}</div></li>`).join('')}
     </ul>`;
@@ -3830,31 +4147,31 @@ function renderAdminSettings() {
       <p>Download reports for merchant review. <strong>CSV files can be opened directly in Microsoft Excel.</strong></p>
       <div class="export-grid">
         <div class="export-btn-card" onclick="exportSalesCSV()">
-          <h4>📊 Export Sales CSV</h4><p>city-cafe-sales-transactions.csv</p>
+          <h4>📊 Export Sales CSV</h4><p>aida-cafe-sales-transactions.csv</p>
           <p class="helper">All POS sales with items, totals, and payment method</p>
         </div>
         <div class="export-btn-card" onclick="exportStudentsCSV()">
-          <h4>👥 Export Members CSV</h4><p>city-cafe-members.csv</p>
+          <h4>👥 Export Members CSV</h4><p>aida-cafe-members.csv</p>
           <p class="helper">Students and general customers with loyalty status</p>
         </div>
         <div class="export-btn-card" onclick="exportMenuCSV()">
-          <h4>🍽 Export Menu CSV</h4><p>city-cafe-menu.csv</p>
+          <h4>🍽 Export Menu CSV</h4><p>aida-cafe-menu.csv</p>
           <p class="helper">Products with Has Image flag (no image file data)</p>
         </div>
         <div class="export-btn-card" onclick="exportOffersCSV()">
-          <h4>🏷 Export Offers CSV</h4><p>city-cafe-offers.csv</p>
+          <h4>🏷 Export Offers CSV</h4><p>aida-cafe-offers.csv</p>
           <p class="helper">Student and member promotion rules</p>
         </div>
         <div class="export-btn-card" onclick="exportRedemptionsCSV()">
-          <h4>🎁 Export Redemptions CSV</h4><p>city-cafe-redemptions.csv</p>
+          <h4>🎁 Export Redemptions CSV</h4><p>aida-cafe-redemptions.csv</p>
           <p class="helper">Points and free drink redemptions</p>
         </div>
         <div class="export-btn-card" onclick="exportDailySummaryCSV()">
-          <h4>📅 Export Daily Summary CSV</h4><p>city-cafe-daily-summary.csv</p>
+          <h4>📅 Export Daily Summary CSV</h4><p>aida-cafe-daily-summary.csv</p>
           <p class="helper">Revenue and orders grouped by date</p>
         </div>
         <div class="export-btn-card" onclick="exportBackupJSON()">
-          <h4>💾 Export Full Backup JSON</h4><p>city-cafe-backup.json</p>
+          <h4>💾 Export Full Backup JSON</h4><p>aida-cafe-backup.json</p>
           <p class="helper">Complete demo data including menu images</p>
         </div>
         <div class="export-btn-card" onclick="importBackupJSON()">
@@ -3943,7 +4260,8 @@ async function initApp() {
   await refreshSystemStatus();
   if (window.location.protocol === 'file:') {
     updateApiBadge('offline');
-    toast('Open http://localhost:3001 in your browser for the live database connection.', 'error');
+    const badge = document.getElementById('api-status-badge');
+    if (badge) { badge.classList.remove('hidden'); badge.textContent = '○ Open via localhost:3001'; }
     loadData();
     return;
   }
@@ -3987,7 +4305,7 @@ initApp();
 <!-- Demo Guide (renderDemoGuide): Staff POS demo, Customer demo, General customer demo, Admin dashboard demo -->
 <section id="demo-guide-section" aria-label="Demo Guide" hidden>
   <h2>Demo Guide</h2>
-  <p>City Café Rewards merchant demo flows: Staff POS demo, Customer demo, General customer demo, Admin dashboard demo.</p>
+  <p>Aida Cafe Rewards merchant demo flows: Staff POS demo, Customer demo, General customer demo, Admin dashboard demo.</p>
 </section>
 
 </body>

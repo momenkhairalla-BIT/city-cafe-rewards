@@ -1,0 +1,925 @@
+openapi: 3.1.2
+info:
+  title: Aida Cafe Shared Core API
+  version: 1.0.0-phase3a
+  summary: Shared API for Team 1 Customer App and Team 2 POS/Admin
+  description: |
+    Single source of truth for members, menu, offers, orders, and loyalty.
+
+    **Compatibility:** Legacy `/api/*` routes remain. Prefer `/api/v1/*` for new integration.
+    Team 1 customer Bearer JWT endpoints are unchanged in contract shape.
+    Phase 3A adds employee-only `POST /api/v1/pos/sales` (feature-flagged `ENABLE_POS_SALES=1`).
+    Team 1 customer auth/order-history/rewards/menu/offer response shapes are frozen.
+
+    **Auth boundaries (Phase 2A):**
+    - **Customer:** Bearer JWT via `POST /api/v1/auth/login` (employees rejected).
+    - **Employee web:** HttpOnly cookie session via `POST /api/v1/auth/employee/login`
+      (+ CSRF Origin checks on mutating cookie routes). Do not store session tokens in localStorage.
+    - **Terminal:** HttpOnly cookie (`aida_terminal` / `__Host-aida_terminal`) via OTC enrol;
+      fingerprint is telemetry only. JS never receives the terminal secret.
+    - Dual-run: deprecated `POST /api/v1/auth/employee/legacy-login` (feature-gated) for legacy SPA only;
+      new React clients must rely on the cookie session and never use `legacyAccessToken`.
+
+    **Status markers:**
+    - `x-status: implemented` — wired today.
+    - `x-status: planned` — documented only — not production-ready.
+  contact:
+    name: Aida Cafe Platform Teams
+  license:
+    name: Proprietary
+
+servers:
+  - url: http://localhost:3001
+    description: Local API
+  - url: https://city-cafe-rewards.onrender.com
+    description: Deployed demo (do not treat as staging for migrations)
+
+tags:
+  - name: System
+  - name: Authentication
+  - name: EmployeeAuth
+  - name: Terminals
+  - name: Shifts
+  - name: Members
+  - name: Menu
+  - name: Offers
+  - name: Orders
+  - name: Loyalty
+  - name: OperationsPlanned
+    description: Documented but not yet production-ready (e.g. audit-logs read API, POS checkout)
+
+paths:
+  /health:
+    get:
+      tags: [System]
+      summary: Health check
+      operationId: getHealth
+      x-status: implemented
+      security: []
+      responses:
+        '200':
+          description: Service healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthOk'
+        '503':
+          description: Database unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorBody'
+
+  /api/v1:
+    get:
+      tags: [System]
+      summary: API v1 catalog (implemented vs planned)
+      operationId: getApiV1Catalog
+      x-status: implemented
+      security: []
+      responses:
+        '200':
+          description: Catalog of implemented and planned endpoints
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+
+  /api/v1/auth/login:
+    post:
+      tags: [Authentication]
+      summary: Customer login (Bearer JWT)
+      description: |
+        Multi-identifier customer login. **Employees are rejected** with generic
+        `INVALID_CREDENTIALS` (same message as bad password). Same handler as `/api/auth/login`.
+      operationId: postAuthLogin
+      x-status: implemented
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /api/v1/auth/register:
+    post:
+      tags: [Authentication]
+      summary: Customer self-registration
+      operationId: postAuthRegister
+      x-status: implemented
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        '201':
+          description: Registered
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /api/v1/auth/me:
+    get:
+      tags: [Authentication]
+      summary: Current authenticated user
+      operationId: getAuthMe
+      x-status: implemented
+      responses:
+        '200':
+          description: Current user
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/v1/auth/employee/login:
+    post:
+      tags: [Authentication, EmployeeAuth]
+      summary: Employee password login (HttpOnly cookie session)
+      operationId: postEmployeeLogin
+      x-status: implemented
+      security: []
+      description: |
+        Sets `aida_employee_session` HttpOnly cookie (path `/api/v1`).
+        Customers are rejected with generic `INVALID_CREDENTIALS`.
+        May return transitional `legacyAccessToken` for dual-run Bearer routes — do not store in localStorage.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [username, password]
+              properties:
+                username: { type: string }
+                password: { type: string, format: password }
+      responses:
+        '200':
+          description: Employee session established
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '401':
+          description: Invalid credentials (generic)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorBody'
+        '429':
+          description: Rate limited (`LOGIN_RATE_LIMITED`)
+
+  /api/v1/auth/employee/login/badge:
+    post:
+      tags: [Authentication, EmployeeAuth]
+      summary: Badge/card + PIN login (mock/software adapter)
+      operationId: postEmployeeBadgeLogin
+      x-status: implemented
+      security: []
+      description: Keyboard-wedge style adapter. Raw badge values are never stored — keyed digest only.
+      responses:
+        '200':
+          description: Employee session established
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          description: Rate limited (`PIN_RATE_LIMITED`)
+
+  /api/v1/auth/employee/legacy-login:
+    post:
+      tags: [Authentication, EmployeeAuth]
+      summary: DEPRECATED legacy employee Bearer login (password only)
+      operationId: postEmployeeLegacyLogin
+      x-status: implemented
+      security: []
+      description: |
+        Temporary dual-run endpoint for the legacy `index.html` SPA only.
+        Requires `ENABLE_LEGACY_EMPLOYEE_LOGIN=1`. Password authentication only.
+        Badge/PIN payloads are rejected. Returns a short-lived Bearer token.
+        **Removal scheduled: Phase 5.** React POS/Admin must never call this endpoint
+        or store the returned token.
+      responses:
+        '200':
+          description: Deprecated Bearer token issued
+        '403':
+          description: Feature disabled (`LEGACY_EMPLOYEE_LOGIN_DISABLED`)
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '400':
+          description: Validation / badge not allowed
+
+  /api/v1/auth/employee/session:
+    get:
+      tags: [EmployeeAuth]
+      summary: Current employee session
+      operationId: getEmployeeSession
+      x-status: implemented
+      security: [{ employeeCookieAuth: [] }]
+      responses:
+        '200':
+          description: Session + employee profile
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/v1/auth/employee/logout:
+    post:
+      tags: [EmployeeAuth]
+      summary: Logout / revoke employee session
+      operationId: postEmployeeLogout
+      x-status: implemented
+      security: [{ employeeCookieAuth: [] }]
+      description: Requires CSRF Origin check.
+      responses:
+        '200':
+          description: Session revoked
+        '403':
+          description: CSRF rejected (`CSRF_ORIGIN_REQUIRED` / `CSRF_ORIGIN_REJECTED`)
+
+  /api/v1/auth/employee/product-select:
+    post:
+      tags: [EmployeeAuth]
+      summary: Select POS or Admin product (dual-role)
+      operationId: postEmployeeProductSelect
+      x-status: implemented
+      security: [{ employeeCookieAuth: [] }]
+      description: |
+        Admin may select `pos` only when `dual_role_pos_enabled` is true.
+        Staff cannot select `admin`. CSRF Origin required.
+      responses:
+        '200':
+          description: Product selected
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/v1/members:
+    get:
+      tags: [Members]
+      summary: List members
+      description: |
+        Currently available to staff and admin (legacy). Phase 2+ will restrict list/export
+        to managers only; POS will use limited scan DTOs.
+      operationId: listMembers
+      x-status: implemented
+      responses:
+        '200':
+          description: Member list
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/v1/members/{code}:
+    get:
+      tags: [Members]
+      summary: Get member by code
+      operationId: getMemberByCode
+      x-status: implemented
+      parameters:
+        - $ref: '#/components/parameters/MemberCode'
+      responses:
+        '200':
+          description: Member
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Member'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/scan/{code}:
+    get:
+      tags: [Members, Loyalty]
+      summary: POS member scan / lookup
+      operationId: scanMember
+      x-status: implemented
+      parameters:
+        - $ref: '#/components/parameters/MemberCode'
+      responses:
+        '200':
+          description: Member loyalty snapshot for checkout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MemberScan'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/v1/menu:
+    get:
+      tags: [Menu]
+      summary: List menu items
+      operationId: listMenu
+      x-status: implemented
+      parameters:
+        - name: all
+          in: query
+          required: false
+          schema:
+            type: string
+          description: When true, staff/admin may include inactive items
+      responses:
+        '200':
+          description: Menu items
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+
+  /api/v1/offers:
+    get:
+      tags: [Offers]
+      summary: List offers
+      operationId: listOffers
+      x-status: implemented
+      responses:
+        '200':
+          description: Offers
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+
+  /api/v1/pos/sales:
+    post:
+      tags: [Orders, Loyalty]
+      summary: Server-authoritative employee POS sale
+      operationId: createPosSale
+      x-status: implemented
+      description: |
+        Employee-only soft POS sale (cookie session + terminal cookie + open shift).
+        Requires `ENABLE_POS_SALES=1` (disabled outside temporary/demo until Team 1 review).
+        Server calculates all money from `menu_items`. Client prices/totals/attribution rejected.
+        Idempotency-Key required; scoped to (staff, terminal). Soft payment recording only.
+        **Does not change** Team 1 `POST /api/v1/orders/sales` contract.
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: true
+          schema:
+            type: string
+            minLength: 8
+      security:
+        - employeeCookieAuth: []
+        - terminalCredentialAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [items, paymentMethod]
+              properties:
+                memberCode:
+                  type: string
+                  description: Member sale lookup; omit/null with guest sale
+                guest:
+                  type: boolean
+                  description: Guest sale (no loyalty). Prefer omitting memberCode.
+                items:
+                  type: array
+                  items:
+                    type: object
+                    required: [menuItemId, quantity]
+                    properties:
+                      menuItemId: { type: string, format: uuid }
+                      quantity: { type: integer, minimum: 1 }
+                      modifierIds:
+                        type: array
+                        items: { type: string }
+                        description: Rejected until modifiers schema exists
+                offerId: { type: string, description: Offer id or slug; revalidated server-side }
+                offerSlug: { type: string }
+                voucherSlug: { type: string, description: Points-catalog voucher; once per member }
+                paymentMethod:
+                  type: string
+                  enum: [Cash, Card, E-wallet, Student Wallet]
+                cashReceived: { type: number, description: Required when Cash }
+                externalPaymentRef:
+                  type: string
+                  description: Non-sensitive soft reference only
+                note: { type: string }
+              additionalProperties: false
+      responses:
+        '201':
+          description: Sale created
+        '200':
+          description: Idempotent replay of original sale
+        '400':
+          description: Validation / spoof / unavailable item
+        '403':
+          description: Flag off, no POS product, or shift not open
+        '409':
+          description: Idempotency key reused with different payload / voucher already redeemed
+
+  /api/v1/orders/sales:
+    post:
+      tags: [Orders, Loyalty]
+      summary: Record soft-POS sale (updates loyalty) — legacy Team 1 / SPA path
+      description: |
+        Legacy Bearer sale path. Team 1 response shape frozen.
+        Prefer `POST /api/v1/pos/sales` for new employee POS clients.
+      operationId: createSale
+      x-status: implemented
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SaleRequest'
+      responses:
+        '200':
+          description: Sale recorded
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    get:
+      tags: [Orders]
+      summary: List recent sales
+      operationId: listSales
+      x-status: implemented
+      parameters:
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Sales list
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+
+  /api/v1/orders/redeem:
+    post:
+      tags: [Orders, Loyalty]
+      summary: Redeem voucher or free drink (staff)
+      operationId: redeemReward
+      x-status: implemented
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        '200':
+          description: Redemption recorded
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/v1/orders/transactions:
+    get:
+      tags: [Orders, Loyalty]
+      summary: List transactions
+      operationId: listTransactions
+      x-status: implemented
+      parameters:
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Transactions
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+
+  /api/v1/terminals/enrol:
+    post:
+      tags: [Terminals]
+      summary: Exchange one-time enrolment code for HttpOnly terminal cookie
+      operationId: enrolTerminal
+      x-status: implemented
+      security: []
+      description: |
+        Single-use, short-lived OTC. Optional `deviceFingerprint` is telemetry only.
+        Sets opaque terminal credential as HttpOnly cookie; JSON never includes the secret.
+        Server stores credential hash only.
+      responses:
+        '201':
+          description: Terminal enrolled (Set-Cookie HttpOnly)
+        '401':
+          description: Invalid/expired/reused code
+
+  /api/v1/terminals/status:
+    get:
+      tags: [Terminals]
+      summary: Probe terminal enrolment via cookie
+      operationId: getTerminalStatus
+      x-status: implemented
+      security: []
+      description: Returns enrolled false when cookie missing; does not leak secrets.
+      responses:
+        '200':
+          description: Enrolment probe result
+
+  /api/v1/terminals/current:
+    get:
+      tags: [Terminals]
+      summary: Resolve current terminal location
+      operationId: getCurrentTerminal
+      x-status: implemented
+      description: Requires HttpOnly terminal cookie (`credentials: include`). Fingerprint alone is rejected.
+      responses:
+        '200':
+          description: Terminal + branch/sales-point resolution
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/v1/terminals/clear-credential:
+    post:
+      tags: [Terminals]
+      summary: Clear terminal credential cookie
+      operationId: clearTerminalCredential
+      x-status: implemented
+      security: []
+      responses:
+        '200':
+          description: Cookie cleared
+
+  /api/v1/terminals/heartbeat:
+    post:
+      tags: [Terminals]
+      summary: Terminal heartbeat
+      operationId: postTerminalHeartbeat
+      x-status: implemented
+      responses:
+        '200':
+          description: Heartbeat accepted
+
+  /api/v1/terminals/{terminalId}/enrolment-codes:
+    post:
+      tags: [Terminals]
+      summary: Manager create one-time enrolment code
+      operationId: createTerminalEnrolmentCode
+      x-status: implemented
+      security: [{ employeeCookieAuth: [] }]
+      description: Admin product + manager capability. CSRF Origin required. Code returned once.
+      parameters:
+        - name: terminalId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '201':
+          description: OTC issued
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/v1/terminals/{terminalId}/revoke:
+    post:
+      tags: [Terminals]
+      summary: Manager revoke/replace terminal credential
+      operationId: revokeTerminal
+      x-status: implemented
+      security: [{ employeeCookieAuth: [] }]
+      parameters:
+        - name: terminalId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Terminal revoked/replaced
+
+  /api/v1/shifts/open:
+    post:
+      tags: [Shifts]
+      summary: Open employee shift on enrolled terminal
+      operationId: openShift
+      x-status: implemented
+      security: [{ employeeCookieAuth: [] }]
+      description: |
+        Requires employee cookie + `X-Terminal-Credential` + POS product.
+        Server derives branch/sales point from terminal; client overrides rejected (`LOCATION_SPOOF_REJECTED`).
+        Concurrent active shifts → `409 SHIFT_ALREADY_ACTIVE`.
+      responses:
+        '201':
+          description: Shift opened
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /api/v1/shifts/current:
+    get:
+      tags: [Shifts]
+      summary: Get/resume context for current active shift
+      operationId: getCurrentShift
+      x-status: implemented
+      security: [{ employeeCookieAuth: [] }]
+      responses:
+        '200':
+          description: Active shift or null
+
+  /api/v1/shifts/{shiftId}/lock:
+    post:
+      tags: [Shifts]
+      summary: Lock shift (idle)
+      operationId: lockShift
+      x-status: implemented
+      security: [{ employeeCookieAuth: [] }]
+      parameters:
+        - name: shiftId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Shift locked
+
+  /api/v1/shifts/{shiftId}/resume:
+    post:
+      tags: [Shifts]
+      summary: Resume locked shift (owner only)
+      operationId: resumeShift
+      x-status: implemented
+      security: [{ employeeCookieAuth: [] }]
+      parameters:
+        - name: shiftId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Shift open again
+
+  /api/v1/shifts/{shiftId}/close:
+    post:
+      tags: [Shifts]
+      summary: Close shift with cash variance
+      operationId: closeShift
+      x-status: implemented
+      security: [{ employeeCookieAuth: [] }]
+      parameters:
+        - name: shiftId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Shift closed; variance stored
+
+  /api/v1/audit-logs:
+    get:
+      tags: [OperationsPlanned]
+      summary: Manager audit log read API (planned)
+      operationId: listAuditLogs
+      x-status: planned
+      description: Append-only table exists; read API not exposed in Phase 2A.
+      responses:
+        '501':
+          description: Not implemented
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorBody'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Customer (Team 1) Bearer JWT from `/api/v1/auth/login`.
+    employeeCookieAuth:
+      type: apiKey
+      in: cookie
+      name: aida_employee_session
+      description: |
+        Opaque employee session cookie (HttpOnly; Secure+SameSite=Strict in production).
+        Mutating requests require matching Origin/Referer (CSRF).
+    terminalCredentialAuth:
+      type: apiKey
+      in: cookie
+      name: aida_terminal
+      description: |
+        Opaque terminal credential cookie (HttpOnly; `__Host-aida_terminal` in production when permitted).
+        Hash stored server-side. Never exposed to JavaScript.
+
+  parameters:
+    MemberCode:
+      name: code
+      in: path
+      required: true
+      schema:
+        type: string
+      description: student_id, member_code, barcode, QR value, or phone
+    Limit:
+      name: limit
+      in: query
+      required: false
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 500
+
+  responses:
+    BadRequest:
+      description: Validation error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorBody'
+    Unauthorized:
+      description: Authentication required or invalid token
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorBody'
+    Forbidden:
+      description: Authenticated but not permitted
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorBody'
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorBody'
+    Conflict:
+      description: Conflict (duplicate or idempotency payload mismatch)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorBody'
+
+  schemas:
+    ErrorBody:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
+        code:
+          type: string
+          description: Stable machine-readable code when available
+        details:
+          type: object
+          additionalProperties: true
+
+    HealthOk:
+      type: object
+      properties:
+        status:
+          type: string
+          const: ok
+        service:
+          type: string
+        database:
+          type: string
+        auth:
+          type: string
+        version:
+          type: string
+        appVersion:
+          type: string
+
+    LoginRequest:
+      type: object
+      required: [username, password]
+      properties:
+        username:
+          type: string
+          description: Username, student ID, member code, barcode, QR, or phone
+        password:
+          type: string
+          format: password
+
+    LoginResponse:
+      type: object
+      properties:
+        token:
+          type: string
+          description: JWT access token (Bearer)
+        user:
+          type: object
+          additionalProperties: true
+
+    Member:
+      type: object
+      description: Member record (DB table currently named students)
+      properties:
+        id:
+          type: string
+          format: uuid
+        memberCode:
+          type: string
+        studentId:
+          type: string
+          nullable: true
+        name:
+          type: string
+        customerType:
+          type: string
+          enum: [city_student, general_customer]
+        points:
+          type: integer
+        currentStampProgress:
+          type: integer
+        freeDrinksAvailable:
+          type: integer
+        isActive:
+          type: boolean
+
+    MemberScan:
+      type: object
+      description: Fields used at POS for checkout / loyalty / eligibility
+      additionalProperties: true
+
+    SaleRequest:
+      type: object
+      properties:
+        memberCode:
+          type: string
+        studentCode:
+          type: string
+        items:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+        paymentMethod:
+          type: string
+          enum: [Cash, Card, E-wallet, Student Wallet]
+        offerId:
+          type: string
+          nullable: true
+        discount:
+          type: number
+        pointsMultiplier:
+          type: number
+        cashReceived:
+          type: number
+        note:
+          type: string
+      additionalProperties: true
+
+    PaginationMeta:
+      type: object
+      description: |
+        Current list endpoints use `limit` query params (not full cursor pagination yet).
+        Future v1 list endpoints SHOULD return this meta object for Team 1 compatibility.
+      properties:
+        limit:
+          type: integer
+        offset:
+          type: integer
+        total:
+          type: integer
+          nullable: true
+
+security:
+  - bearerAuth: []

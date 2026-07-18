@@ -5,8 +5,8 @@ import { hashPassword } from '../src/services/auth.js';
 dotenv.config();
 
 const DEMO_USERS = [
-  { username: 'admin', email: 'admin@citycafe.local', password: 'admin123', role: 'admin', fullName: 'Café Admin' },
-  { username: 'staff', email: 'staff@citycafe.local', password: 'staff123', role: 'staff', fullName: 'Counter Staff' },
+  { username: 'admin', email: 'admin@aidacafe.local', password: 'admin123', role: 'admin', fullName: 'Aida Cafe Admin' },
+  { username: 'staff', email: 'staff@aidacafe.local', password: 'staff123', role: 'staff', fullName: 'Counter Staff' },
   { username: 'CU2024001', email: 'ahmad.faiz@student.city.edu.my', password: 'demo123', role: 'customer', fullName: 'Ahmad Faiz', linkStudentId: 'CU2024001' },
   { username: 'general001', email: 'ali.rahman@email.com', password: 'demo123', role: 'customer', fullName: 'Ali Rahman', linkMemberCode: 'GC-M-001' },
 ];
