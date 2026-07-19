@@ -17,6 +17,12 @@ function failClosedAuthPlugin(mode: string): Plugin {
           + 'Employee authentication must fail closed.',
         );
       }
+      if (env.VITE_UI_PREVIEW_MODE === 'true') {
+        throw new Error(
+          'FATAL: VITE_UI_PREVIEW_MODE=true is not allowed for production builds. '
+          + 'UI preview fixtures must fail closed.',
+        );
+      }
     },
   };
 }

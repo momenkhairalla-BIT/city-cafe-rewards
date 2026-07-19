@@ -1,28 +1,41 @@
 /**
- * Aida Cafe design tokens — aligned with the existing brand in index.html.
- * Structural foundation only (Phase 1A); full POS/Admin UI comes later.
+ * Aida Signature design tokens — shared by Aida Counter (POS) and Aida Office (Admin).
+ * Aligned with the master UI prompt; Playfair + Plus Jakarta remain the brand fonts.
  */
 :root {
-  --aida-cream: #f5efe8;
-  --aida-latte: #ecddcf;
-  --aida-coffee: #5f3e29;
-  --aida-espresso: #1c1108;
-  --aida-caramel: #cdad8e;
-  --aida-floral-pink: #d98a8a;
-  --aida-gold: #c99a45;
+  --aida-ivory: #fff9f6;
+  --aida-cream: #f6ece6;
+  --aida-surface: #fffcfa;
+  --aida-espresso: #2c171b;
+  --aida-burgundy: #541a28;
+  --aida-rose: #c92f50;
+  --aida-floral-pink: #de8d9d;
+  --aida-blush: #f4d4db;
+  --aida-gold: #c8a345;
+  --aida-taupe: #9a7f7a;
+  --aida-success: #36735b;
+  --aida-warning: #b7782f;
+  --aida-error: #b63b45;
+  --aida-outline: #e8d5d0;
   --aida-white: #ffffff;
 
+  /* Legacy aliases used by existing employee CSS */
+  --aida-latte: var(--aida-cream);
+  --aida-coffee: var(--aida-burgundy);
+  --aida-caramel: var(--aida-blush);
   --aida-black: var(--aida-espresso);
   --aida-pink: var(--aida-floral-pink);
-  --aida-soft-pink: var(--aida-latte);
+  --aida-soft-pink: var(--aida-blush);
   --aida-light-grey: var(--aida-cream);
-  --aida-dark-grey: var(--aida-coffee);
+  --aida-dark-grey: var(--aida-taupe);
 
-  --aida-shadow: 0 4px 24px rgba(28, 17, 8, 0.06);
-  --aida-shadow-lg: 0 12px 40px rgba(28, 17, 8, 0.1);
-  --aida-radius: 20px;
-  --aida-radius-sm: 12px;
-  --aida-transition: 0.25s ease;
+  --aida-shadow: 0 4px 20px rgba(44, 23, 27, 0.06);
+  --aida-shadow-lg: 0 12px 36px rgba(44, 23, 27, 0.1);
+  --aida-radius: 16px;
+  --aida-radius-sm: 10px;
+  --aida-radius-xs: 8px;
+  --aida-transition: 0.18s ease;
+  --aida-touch-min: 48px;
 
   --aida-font-body: 'Plus Jakarta Sans', system-ui, sans-serif;
   --aida-font-display: 'Playfair Display', Georgia, serif;
@@ -32,8 +45,14 @@
   --aida-space-2: 0.5rem;
   --aida-space-3: 0.75rem;
   --aida-space-4: 1rem;
+  --aida-space-5: 1.25rem;
   --aida-space-6: 1.5rem;
   --aida-space-8: 2rem;
+  --aida-space-10: 2.5rem;
+
+  --aida-rail-width: 5.5rem;
+  --aida-order-width: 22rem;
+  --aida-admin-sidebar: 16rem;
 }
 
 *,
@@ -51,8 +70,8 @@ body,
 
 body {
   font-family: var(--aida-font-body);
-  background: var(--aida-cream);
-  color: var(--aida-coffee);
+  background: var(--aida-ivory);
+  color: var(--aida-espresso);
 }
 
 h1,
@@ -64,5 +83,98 @@ h3 {
 }
 
 a {
-  color: var(--aida-coffee);
+  color: var(--aida-burgundy);
+}
+
+:focus-visible {
+  outline: 3px solid var(--aida-gold);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+.ui-preview-banner {
+  background: var(--aida-burgundy);
+  color: var(--aida-surface);
+  text-align: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 0.4rem 0.75rem;
+}
+
+.btn-primary,
+.btn-secondary {
+  min-height: var(--aida-touch-min);
+  min-width: var(--aida-touch-min);
+  border-radius: var(--aida-radius-sm);
+  border: none;
+  font-family: var(--aida-font-body);
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0.65rem 1.1rem;
+}
+
+.btn-primary {
+  background: var(--aida-rose);
+  color: var(--aida-surface);
+}
+
+.btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-secondary {
+  background: transparent;
+  color: var(--aida-burgundy);
+  border: 1.5px solid var(--aida-burgundy);
+}
+
+.form-error {
+  color: var(--aida-error);
+  font-weight: 600;
+}
+
+.form-hint {
+  color: var(--aida-taupe);
+  font-size: 0.875rem;
+}
+
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border-radius: 999px;
+  padding: 0.25rem 0.65rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  border: 1px solid var(--aida-outline);
+  background: var(--aida-surface);
+}
+
+.status-pill--ok {
+  color: var(--aida-success);
+  border-color: color-mix(in srgb, var(--aida-success) 40%, white);
+}
+
+.status-pill--warn {
+  color: var(--aida-warning);
+}
+
+.status-pill--err {
+  color: var(--aida-error);
+}
+
+.status-pill--info {
+  color: var(--aida-burgundy);
+  background: var(--aida-blush);
 }

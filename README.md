@@ -23,6 +23,11 @@ Start here:
 | **[docs/PHASE_2B_VALIDATION.md](docs/PHASE_2B_VALIDATION.md)** | Phase 2B validation evidence |
 | **[docs/PHASE_3A_VALIDATION.md](docs/PHASE_3A_VALIDATION.md)** | Phase 3A validation evidence |
 | **[production/api/.env.example](production/api/.env.example)** | API environment variable template (placeholders only) |
+| **[docs/AIDA_POS_ADMIN_UI_SPEC.md](docs/AIDA_POS_ADMIN_UI_SPEC.md)** | React Aida Counter / Aida Office UI spec |
+| **[docs/AIDA_UI_API_CAPABILITY_MATRIX.md](docs/AIDA_UI_API_CAPABILITY_MATRIX.md)** | Live vs preview UI capabilities |
+| **[docs/AIDA_UI_VALIDATION.md](docs/AIDA_UI_VALIDATION.md)** | How to run Aida Counter / Office in UI preview mode |
+
+**Team 1 React UI (review):** branch `team1/aida-pos-admin-ui` — preview-only Counter + Office shells. See `docs/AIDA_UI_VALIDATION.md` for demo logins.
 
 ### Quick start (summary)
 
@@ -39,11 +44,14 @@ npm run setup-db   # first time
 npm run hash-passwords
 npm run dev
 
-# Separate terminal — React POS/Admin shells
+# Separate terminal — React POS/Admin shells (UI preview on team1/aida-pos-admin-ui)
 cd ../../apps/pos-admin-web
 npm install
+copy .env.example .env.development
 npm run dev
+# Open http://localhost:5173/employee — code AIDA-482731, then preview.admin / preview123
 ```
+
 
 Leave `ENABLE_POS_SALES` disabled unless you are on the authorised temporary validation database.
 

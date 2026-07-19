@@ -6,6 +6,7 @@ import { IdleLockModal } from '../components/IdleLockModal';
 
 describe('Accessibility smoke (Phase 2B Closure)', () => {
   beforeEach(() => {
+    sessionStorage.clear();
     vi.stubGlobal(
       'fetch',
       vi.fn(async (input: RequestInfo | URL) => {
