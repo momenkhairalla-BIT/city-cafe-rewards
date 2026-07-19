@@ -68,18 +68,47 @@
 }
 
 .admin-sidebar {
-  width: 260px;
+  width: var(--aida-admin-sidebar);
   background: var(--aida-espresso);
   color: var(--aida-cream);
   padding: var(--aida-space-6);
+  overflow-y: auto;
 }
 
 .admin-sidebar h1 {
   color: var(--aida-cream);
+  font-size: 1.35rem;
 }
 
-.admin-sidebar a {
+.admin-nav-group {
+  margin-top: var(--aida-space-5);
+}
+
+.admin-nav-group__title {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--aida-taupe);
+  margin: 0 0 var(--aida-space-2);
+}
+
+.admin-nav-link {
+  display: block;
+  padding: 0.4rem 0;
   color: var(--aida-latte);
+  text-decoration: none;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.admin-nav-link:hover {
+  color: var(--aida-surface);
+}
+
+.admin-nav-link--active {
+  color: var(--aida-floral-pink);
+  font-weight: 700;
 }
 
 .admin-nav-list {

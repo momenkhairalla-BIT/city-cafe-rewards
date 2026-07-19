@@ -1,4 +1,6 @@
 import type { EmployeeIdentity } from './types';
+import { isUiPreviewMode } from '../preview/uiPreviewMode';
+import { previewAuthRepository } from '../preview/repositories/previewAuthRepository';
 
 /**
  * Cookie-based employee session client.
@@ -137,6 +139,20 @@ export async function employeeFetch(input: RequestInfo | URL, init: RequestInit 
 }
 
 export async function refreshEmployeeSessionFromServer(): Promise<EmployeeSessionState> {
+  if (isUiPreviewMode()) {
+    const preview = previewAuthRepository.getSession();
+    if (preview) {
+      setEmployeeIdentity(preview);
+      return state;
+    }
+    // Keep in-memory identity if already set this page session
+    if (state.identity && state.status === 'authenticated') {
+      return state;
+    }
+    setState({ status: 'anonymous', identity: null, idleLocked: false, lastErrorCode: null });
+    return state;
+  }
+
   try {
     const res = await employeeFetch('/api/v1/auth/employee/session');
     if (!res.ok) {
@@ -158,6 +174,12 @@ export async function refreshEmployeeSessionFromServer(): Promise<EmployeeSessio
 }
 
 export async function loginWithPassword(username: string, password: string) {
+  if (isUiPreviewMode()) {
+    const employee = previewAuthRepository.loginWithPassword(username, password);
+    setEmployeeIdentity(employee);
+    return { employee, session: { preview: true } };
+  }
+
   const res = await employeeFetch('/api/v1/auth/employee/login', {
     method: 'POST',
     body: JSON.stringify({ username, password }),
@@ -174,6 +196,12 @@ export async function loginWithPassword(username: string, password: string) {
 }
 
 export async function loginWithBadge(badgeValue: string, pin: string) {
+  if (isUiPreviewMode()) {
+    const employee = previewAuthRepository.loginWithBadge(badgeValue, pin);
+    setEmployeeIdentity(employee);
+    return { employee, session: { preview: true } };
+  }
+
   const res = await employeeFetch('/api/v1/auth/employee/login/badge', {
     method: 'POST',
     body: JSON.stringify({ badgeValue, pin }),
@@ -189,6 +217,11 @@ export async function loginWithBadge(badgeValue: string, pin: string) {
 }
 
 export async function logoutEmployee() {
+  if (isUiPreviewMode()) {
+    previewAuthRepository.logout();
+    clearEmployeeSession();
+    return;
+  }
   try {
     await employeeFetch('/api/v1/auth/employee/logout', { method: 'POST', body: '{}' });
   } finally {
@@ -197,6 +230,12 @@ export async function logoutEmployee() {
 }
 
 export async function selectProduct(product: 'pos' | 'admin') {
+  if (isUiPreviewMode()) {
+    const employee = previewAuthRepository.selectProduct(product);
+    setEmployeeIdentity(employee);
+    return { employee };
+  }
+
   const res = await employeeFetch('/api/v1/auth/employee/product-select', {
     method: 'POST',
     body: JSON.stringify({ product }),

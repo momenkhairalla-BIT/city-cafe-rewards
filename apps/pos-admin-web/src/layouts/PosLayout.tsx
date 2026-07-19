@@ -8,11 +8,6 @@ import './layouts.css';
 export function PosLayout() {
   return (
     <div className="layout layout-pos" data-product="pos">
-      <header className="layout-header">
-        <p className="brand-script">Aida Cafe</p>
-        <h1>Staff POS</h1>
-        <p className="layout-sub">Shift-gated workspace — checkout arrives in a later phase</p>
-      </header>
       <main className="layout-main-flush">
         <Outlet />
       </main>

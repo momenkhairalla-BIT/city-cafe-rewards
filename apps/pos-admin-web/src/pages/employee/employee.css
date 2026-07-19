@@ -10,12 +10,50 @@
 }
 
 .employee-panel {
-  width: min(440px, 100%);
+  width: min(520px, 100%);
   background: rgba(255, 255, 255, 0.92);
   border-radius: var(--aida-radius);
   box-shadow: var(--aida-shadow-lg);
   padding: var(--aida-space-8);
   border: 1px solid rgba(201, 154, 69, 0.35);
+}
+
+.preview-demo-card {
+  margin: var(--aida-space-4) 0;
+  padding: var(--aida-space-4);
+  border-radius: var(--aida-radius-sm);
+  border: 1px dashed var(--aida-burgundy);
+  background: var(--aida-blush);
+}
+
+.preview-demo-card__label {
+  margin: 0 0 var(--aida-space-2);
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--aida-burgundy);
+}
+
+.preview-code {
+  font-weight: 700;
+  color: var(--aida-espresso);
+  background: var(--aida-surface);
+  padding: 0.15rem 0.4rem;
+  border-radius: 4px;
+}
+
+.preview-demo-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--aida-space-2);
+  margin-top: var(--aida-space-3);
+}
+
+.preview-account-list {
+  margin: var(--aida-space-2) 0 0;
+  padding-left: 1.1rem;
+  font-size: 0.85rem;
 }
 
 .employee-panel .brand-script {
