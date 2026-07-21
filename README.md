@@ -26,6 +26,7 @@ Start here:
 | **[docs/AIDA_POS_ADMIN_UI_SPEC.md](docs/AIDA_POS_ADMIN_UI_SPEC.md)** | React Aida Counter / Aida Office UI spec |
 | **[docs/AIDA_UI_API_CAPABILITY_MATRIX.md](docs/AIDA_UI_API_CAPABILITY_MATRIX.md)** | Live vs preview UI capabilities |
 | **[docs/AIDA_UI_VALIDATION.md](docs/AIDA_UI_VALIDATION.md)** | How to run Aida Counter / Office in UI preview mode |
+| **[docs/AIDA_REACT_UI_PRD.md](docs/AIDA_REACT_UI_PRD.md)** | PRD for the new React Counter / Office redesign (share with teammates) |
 
 **Team 1 React UI (review):** branch `team1/aida-pos-admin-ui` — preview-only Counter + Office shells. See `docs/AIDA_UI_VALIDATION.md` for demo logins.
 
