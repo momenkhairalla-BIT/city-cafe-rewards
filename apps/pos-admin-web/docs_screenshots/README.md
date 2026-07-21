@@ -1,16 +1,11 @@
-# UI screenshots
+﻿# Full UI screenshot set
 
-Generated with preview mode (`VITE_UI_PREVIEW_MODE=true` via `.env.development`):
+42 PNGs of every Employee, POS, and Admin preview screen in `all-screens/`.
 
-| File | Contents |
-|------|----------|
-| `terminal-enrol-preview.png` | Enrolment UI + sample code `AIDA-482731` |
-| `pos-1366.png` | Aida Counter after preview staff login |
-| `admin-overview-1440.png` | Aida Office overview after preview admin login |
-
-Regenerate:
+Regenerate (dev server on :5173):
 
 ```powershell
-npm run dev
-node scripts/capture-preview-screens.mjs
+node scripts/capture-all-screens.mjs
 ```
+
+Local zip (gitignored): `aida-pos-admin-all-screens.zip`
